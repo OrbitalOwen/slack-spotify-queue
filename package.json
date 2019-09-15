@@ -1,0 +1,22 @@
+{
+  "name": "slack-spotify-queue",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsc && node index.js"
+  },
+  "author": "OrbitalOwen",
+  "license": "MIT",
+  "dependencies": {
+    "@slack/rtm-api": "^5.0.2",
+    "@types/node": "^12.7.5",
+    "dotenv": "^8.1.0",
+    "express": "^4.17.1",
+    "open": "^6.4.0",
+    "request": "^2.88.0",
+    "spotify-web-api-node": "^4.0.0",
+    "typescript": "^3.6.3"
+  },
+  "devDependencies": {}
+}
