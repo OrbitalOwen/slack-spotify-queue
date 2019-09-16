@@ -232,7 +232,7 @@ export default class SpotifyQueue {
 
                 spotifyQueue.queue.push(track)
 
-                if (spotifyQueue.active && spotifyQueue.queue.length == 1) {
+                if (!spotifyQueue.currentTrack && spotifyQueue.active && spotifyQueue.queue.length == 1) {
                     spotifyQueue.playNextTrack().catch(function(error) {
                         console.error(error)
                     })
@@ -259,6 +259,7 @@ export default class SpotifyQueue {
             let timeLeft = response.body.progress_ms ? (track.duration_ms - response.body.progress_ms) : 0
 
             if (currentTrackId != track.trackId || timeLeft <= 0) {
+                spotifyQueue.currentTrack = null
                 spotifyQueue.playNextTrack().catch(function(error) {
                     console.log(error)
                 })
