@@ -38,13 +38,13 @@ All commands must be directed at me using @
                         resolve(`Added ${trackName} to queue`)
                     }).catch(function(error) {
                         reject(error)
-                    })                
+                    })
                 } else if (resource.type == 'album') {
                     spotifyQueue.addAlbumToQueue(resource.id).then(function(albumInfo) {
                         resolve(`Added ${albumInfo} to queue`)
                     }).catch(function(error) {
                         reject(error)
-                    })                        
+                    })
                 } else if (resource.type == 'playlist') {
                     spotifyQueue.addPlaylistToQueue(resource.id).then(function(playlistInfo) {
                         resolve(`Added ${playlistInfo} to queue`)
@@ -103,7 +103,7 @@ function messageRecieved(client: RTMClient, event, spotifyQueue: SpotifyQueue, s
             const hasParams = (spaceIndex != -1)
             let command = hasParams ? botMessage.substring(0, spaceIndex) : botMessage
             let params = hasParams ? botMessage.substring(spaceIndex + 1) : ''
-    
+
             let thread_ts = event.thread_ts ? event.thread_ts : event.ts
 
             executeCommand(spotifyQueue, skipVoter, event.user, command, params).then(function(reply) {
@@ -136,11 +136,11 @@ export default class SlackBot {
 
     listenForMessages() {
         const client = new RTMClient(botToken)
-    
+
         client.on('message', (event) => {
             messageRecieved(client, event, this.spotifyQueue, this.skipVoter)
         });
-    
+
         client.start()
     }
 }

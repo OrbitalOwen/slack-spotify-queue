@@ -1,5 +1,5 @@
-import SpotifyWebApi from 'spotify-web-api-node'
-import express from 'express'
+import * as SpotifyWebApi from 'spotify-web-api-node'
+import * as express from 'express'
 import * as openUrl from 'open'
 
 const scopes = [
@@ -111,7 +111,9 @@ export default class SpotifyQueue {
         const spotifyQueue = this
         return new Promise(function (resolve, reject) {
             if (getCurrentTime() > spotifyQueue.tokenExpirationEpoch - 300) {
+                console.log('Refreshing access token')
                 spotifyApi.refreshAccessToken().then(function (data) {
+                    spotifyApi.setAccessToken(data.body['access_token']);
                     spotifyQueue.tokenExpirationEpoch = getCurrentTime() + data.body['expires_in']
                     resolve()
                 }).catch(function (error) {
