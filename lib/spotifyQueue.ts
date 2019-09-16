@@ -56,6 +56,7 @@ export default class SpotifyQueue {
     private active: boolean
     private currentPlayNumber: number
     private currentTrack: Track
+    private deviceId: string
 
     constructor() {
         this.queue = []
@@ -283,7 +284,9 @@ export default class SpotifyQueue {
 
         return new Promise(function(resolve, reject) {
             return spotifyQueue.refershTokenIfRequired().then(function() {
-                return spotifyApi.pause({})
+                return spotifyApi.pause({
+                    device_id: spotifyQueue.deviceId
+                })
             }).then(function() {
                 spotifyQueue.active = false
                 resolve()
@@ -296,6 +299,29 @@ export default class SpotifyQueue {
 
     getCurrentTrack() {
 
+    }
+
+    getDevicesString(): Promise<any> {
+        const spotifyQueue = this
+        return new Promise(function(resolve, reject) {
+            return spotifyQueue.refershTokenIfRequired().then(function() {
+                return spotifyApi.getMyDevices()
+            }).then(function(response) {
+                const devices = response.body.devices
+                let devicesString = 'Devices:'
+                for (const device of devices) {
+                    devicesString = `${devicesString}\n*${device.name}*: ${device.id}`
+                }
+                resolve(devicesString)
+            }).catch(function(error) {
+                console.error(error)
+                reject('Failed to load devices')
+            })
+        })
+    }
+
+    setDeviceId(deviceId: string) {
+        this.deviceId = deviceId
     }
 
     playNextTrack() {
@@ -311,10 +337,12 @@ export default class SpotifyQueue {
             return spotifyQueue.refershTokenIfRequired().then(function() {
                 return Promise.all([
                     spotifyApi.setRepeat({
-                        state: 'off'
+                        state: 'off',
+                        device_id: spotifyQueue.deviceId
                     }),
                     spotifyApi.play({
-                        uris: [track.uri]
+                        uris: [track.uri],
+                        device_id: spotifyQueue.deviceId
                     })
                 ]).then(function() {
                     console.log(`playing ${track.name} will finish in ${track.duration_ms} miliseconds`)

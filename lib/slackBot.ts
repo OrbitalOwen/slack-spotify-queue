@@ -27,6 +27,8 @@ All commands must be directed at me using @
 \`clear\` - Clear the queue
 \`display\` - Display the first ten tracks in the queue
 \`skip\` - Vote to skip the current track, ${skipThreshold} vote(s) are required
+\'showdevices'\ - Show currently available device ids
+\`setdevice\` - Set device id to play from
             `)
         } else if (command == 'ping') {
             resolve("I'm online!")
@@ -91,6 +93,15 @@ All commands must be directed at me using @
             } else {
                 resolve()
             }
+        } else if (command == 'showdevices') {
+            spotifyQueue.getDevicesString().then(function(response) {
+                resolve(response)
+            }).catch(function(error) {
+                reject(error)
+            })
+        } else if (command == 'setdevice') {
+            spotifyQueue.setDeviceId(params)
+            resolve('Device ID set - play to verify')
         }
     })
 }
