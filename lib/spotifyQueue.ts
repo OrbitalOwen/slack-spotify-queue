@@ -1,6 +1,6 @@
-const SpotifyWebApi = require('spotify-web-api-node')
-const express = require("express")
-const openUrl = require('open')
+import SpotifyWebApi from 'spotify-web-api-node'
+import express from 'express'
+import * as openUrl from 'open'
 
 const scopes = [
     'user-read-playback-state',
@@ -9,7 +9,7 @@ const scopes = [
 ]
 
 const spotifyApi = new SpotifyWebApi({
-    redirectUri: 'http://localhost:8888/callback',
+    redirectUri: 'http://localhost:8800/callback',
     clientId: process.env.SPOTIFY_CLIENT_ID,
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET
 });
@@ -38,7 +38,7 @@ function getObjectName(objectInfo): string {
         for (const artistObject of objectInfo.artists) {
             let artistName = artistObject.name ? artistObject.name : 'Unknown'
             if (artistsString != '') {
-                artistsString = artistsString + ', ' + artistName 
+                artistsString = artistsString + ', ' + artistName
             } else {
                 artistsString = artistName
             }
@@ -59,7 +59,7 @@ export default class SpotifyQueue {
 
     constructor() {
         this.queue = []
-        this.currentPlayNumber = 0  
+        this.currentPlayNumber = 0
         this.tokenExpirationEpoch = 0
         this.active = false
     }
@@ -81,16 +81,16 @@ export default class SpotifyQueue {
         return new Promise(function (resolve, reject) {
             const expressApp = express()
             let expressServer
-    
+
             expressApp.get('/callback', function (request, response) {
                 const authCode = request.query.code
-    
+
                 spotifyApi.authorizationCodeGrant(authCode).then(
                     function (data) {
                         spotifyApi.setAccessToken(data.body['access_token'])
                         spotifyApi.setRefreshToken(data.body['refresh_token'])
                         spotifyQueue.tokenExpirationEpoch = getCurrentTime() + data.body['expires_in']
-    
+
                         response.send('You may now close this window.')
                         expressServer.close()
                         resolve()
@@ -99,9 +99,9 @@ export default class SpotifyQueue {
                     reject(error)
                 });
             })
-    
-            expressServer = expressApp.listen(8888)
-    
+
+            expressServer = expressApp.listen(8800)
+
             const authorizeURL = spotifyApi.createAuthorizeURL(scopes)
             openUrl(authorizeURL)
         })
@@ -131,7 +131,7 @@ export default class SpotifyQueue {
 
         let queueString = 'Queue is:'
 
-        for (var i = 0; i < Math.min(this.queue.length, 10); i++) { 
+        for (var i = 0; i < Math.min(this.queue.length, 10); i++) {
             const trackObject = this.queue[i]
             const position = i + 1
             queueString = `${queueString}\n${position}: ${trackObject.name}`
@@ -178,7 +178,7 @@ export default class SpotifyQueue {
             spotifyQueue.playNextTrack().catch(function(error) {
                 console.error(error)
             })
-        }      
+        }
     }
 
     addAlbumToQueue(albumId: string) {
@@ -254,7 +254,7 @@ export default class SpotifyQueue {
         }).then(function (response) {
             let currentTrackId = response.body.item ? response.body.item.id : null
             let timeLeft = response.body.progress_ms ? (track.duration_ms - response.body.progress_ms) : 0
-    
+
             if (currentTrackId != track.trackId || timeLeft <= 0) {
                 spotifyQueue.playNextTrack().catch(function(error) {
                     console.log(error)
@@ -278,7 +278,7 @@ export default class SpotifyQueue {
 
     stop() {
         const spotifyQueue = this
-        
+
         return new Promise(function(resolve, reject) {
             return spotifyQueue.refershTokenIfRequired().then(function() {
                 return spotifyApi.pause({})
@@ -295,7 +295,7 @@ export default class SpotifyQueue {
     getCurrentTrack() {
 
     }
-    
+
     playNextTrack() {
         const spotifyQueue = this
         return new Promise(function(resolve, reject) {
@@ -303,7 +303,7 @@ export default class SpotifyQueue {
                 reject('Queue is empty.')
                 return
             }
-    
+
             const track = spotifyQueue.queue[0]
 
             return spotifyQueue.refershTokenIfRequired().then(function() {
@@ -314,19 +314,19 @@ export default class SpotifyQueue {
                     spotifyApi.play({
                         uris: [track.uri]
                     })
-                ]).then(function() {    
+                ]).then(function() {
                     console.log(`playing ${track.name} will finish in ${track.duration_ms} miliseconds`)
-    
+
                     spotifyQueue.queue = spotifyQueue.queue.slice(1, spotifyQueue.queue.length)
                     spotifyQueue.currentPlayNumber = spotifyQueue.currentPlayNumber + 1
                     const thisPlayNumer = spotifyQueue.currentPlayNumber
                     spotifyQueue.currentTrack = track
                     spotifyQueue.active = true
-    
+
                     setTimeout(function () {
                         spotifyQueue.checkIfTrackEnded(thisPlayNumer, track)
                     }, track.duration_ms)
-    
+
                     resolve(track.name)
                 }).catch(function(error) {
                     console.error(error)
