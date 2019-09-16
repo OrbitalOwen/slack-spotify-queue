@@ -349,12 +349,12 @@ export default class SpotifyQueue {
 
                     spotifyQueue.queue = spotifyQueue.queue.slice(1, spotifyQueue.queue.length)
                     spotifyQueue.currentPlayNumber = spotifyQueue.currentPlayNumber + 1
-                    const thisPlayNumer = spotifyQueue.currentPlayNumber
+                    const thisPlayNumber = spotifyQueue.currentPlayNumber
                     spotifyQueue.currentTrack = track
                     spotifyQueue.active = true
 
                     setTimeout(function () {
-                        spotifyQueue.checkIfTrackEnded(thisPlayNumer, track)
+                        spotifyQueue.checkIfTrackEnded(thisPlayNumber, track)
                     }, track.duration_ms)
 
                     resolve(track.name)
