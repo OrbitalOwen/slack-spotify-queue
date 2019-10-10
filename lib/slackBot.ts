@@ -16,7 +16,7 @@ function getMessageToBot(text: string): string {
 }
 
 function executeCommand(spotifyQueue: SpotifyQueue, skipVoter: SkipVoter, userId: string, command: string, params: string): Promise<any> {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
         if (command == 'help') {
             resolve(`
 All commands must be directed at me using @
@@ -27,7 +27,7 @@ All commands must be directed at me using @
 \`clear\` - Clear the queue
 \`display\` - Display the first ten tracks in the queue
 \`skip\` - Vote to skip the current track, ${skipThreshold} vote(s) are required
-\'showdevices'\ - Show currently available device ids
+\`showdevices\` - Show currently available device ids
 \`setdevice\` - Set device id to play from
             `)
         } else if (command == 'ping') {
@@ -36,21 +36,21 @@ All commands must be directed at me using @
             let resource = identifySpotifyResource(params)
             if (resource) {
                 if (resource.type == 'track') {
-                    spotifyQueue.addTrackToQueue(resource.id).then(function(trackName) {
+                    spotifyQueue.addTrackToQueue(resource.id).then(function (trackName) {
                         resolve(`Added ${trackName} to queue`)
-                    }).catch(function(error) {
+                    }).catch(function (error) {
                         reject(error)
                     })
                 } else if (resource.type == 'album') {
-                    spotifyQueue.addAlbumToQueue(resource.id).then(function(albumInfo) {
+                    spotifyQueue.addAlbumToQueue(resource.id).then(function (albumInfo) {
                         resolve(`Added ${albumInfo} to queue`)
-                    }).catch(function(error) {
+                    }).catch(function (error) {
                         reject(error)
                     })
                 } else if (resource.type == 'playlist') {
-                    spotifyQueue.addPlaylistToQueue(resource.id).then(function(playlistInfo) {
+                    spotifyQueue.addPlaylistToQueue(resource.id).then(function (playlistInfo) {
                         resolve(`Added ${playlistInfo} to queue`)
-                    }).catch(function(error) {
+                    }).catch(function (error) {
                         reject(error)
                     })
                 }
@@ -60,9 +60,9 @@ All commands must be directed at me using @
         } else if (command == 'play') {
             const isActive = spotifyQueue.isActive()
             if (!isActive || params == 'force') {
-                spotifyQueue.playNextTrack().then(function(trackName) {
+                spotifyQueue.playNextTrack().then(function (trackName) {
                     resolve(`Now playing ${trackName}`)
-                }).catch(function(error) {
+                }).catch(function (error) {
                     reject(error)
                 })
             } else {
@@ -70,9 +70,9 @@ All commands must be directed at me using @
                 reject('Already playing, use `play force` to force play.')
             }
         } else if (command == 'stop') {
-            spotifyQueue.stop().then(function() {
+            spotifyQueue.stop().then(function () {
                 resolve('Stopped')
-            }).catch(function(error) {
+            }).catch(function (error) {
                 reject(error)
             })
         } else if (command == 'clear') {
@@ -85,18 +85,18 @@ All commands must be directed at me using @
             const doSkip = skipVoter.registerVote(userId)
             if (doSkip) {
                 const currentTrackName = spotifyQueue.getCurrentTrackName()
-                spotifyQueue.playNextTrack().then(function() {
+                spotifyQueue.playNextTrack().then(function () {
                     resolve(`Skipped ${currentTrackName}`)
-                }).catch(function(error) {
+                }).catch(function (error) {
                     reject(error)
                 })
             } else {
                 resolve()
             }
         } else if (command == 'showdevices') {
-            spotifyQueue.getDevicesString().then(function(response) {
+            spotifyQueue.getDevicesString().then(function (response) {
                 resolve(response)
-            }).catch(function(error) {
+            }).catch(function (error) {
                 reject(error)
             })
         } else if (command == 'setdevice') {
@@ -117,7 +117,7 @@ function messageRecieved(client: RTMClient, event, spotifyQueue: SpotifyQueue, s
 
             let thread_ts = event.thread_ts ? event.thread_ts : event.ts
 
-            executeCommand(spotifyQueue, skipVoter, event.user, command, params).then(function(reply) {
+            executeCommand(spotifyQueue, skipVoter, event.user, command, params).then(function (reply) {
                 if (reply) {
                     client.addOutgoingEvent(true, 'message', {
                         text: reply,
@@ -125,7 +125,7 @@ function messageRecieved(client: RTMClient, event, spotifyQueue: SpotifyQueue, s
                         thread_ts: thread_ts
                     })
                 }
-            }).catch(function(errorMessage) {
+            }).catch(function (errorMessage) {
                 client.addOutgoingEvent(true, 'message', {
                     text: '*Error:* ' + errorMessage,
                     channel: event.channel,

@@ -178,7 +178,7 @@ export default class SpotifyQueue {
             spotifyQueue.queue.push(track)
         }
         if (spotifyQueue.active && spotifyQueue.queue.length == 1) {
-            spotifyQueue.playNextTrack().catch(function(error) {
+            spotifyQueue.playNextTrack().catch(function (error) {
                 console.error(error)
             })
         }
@@ -186,15 +186,15 @@ export default class SpotifyQueue {
 
     addAlbumToQueue(albumId: string) {
         const spotifyQueue = this
-        return new Promise(function(resolve, reject) {
-            spotifyQueue.refershTokenIfRequired().then(function() {
-                return spotifyApi.getAlbum(albumId).then(function(response) {
+        return new Promise(function (resolve, reject) {
+            spotifyQueue.refershTokenIfRequired().then(function () {
+                return spotifyApi.getAlbum(albumId).then(function (response) {
                     let albumName = getObjectName(response.body)
                     let tracks = response.body.tracks.items
                     spotifyQueue.addSeveralTracksToQueue(tracks)
                     resolve(`${tracks.length} tracks from album ${albumName}`)
                 })
-            }).catch(function(error) {
+            }).catch(function (error) {
                 console.error(error)
                 reject('Could not add album tracks ')
             })
@@ -203,19 +203,19 @@ export default class SpotifyQueue {
 
     addPlaylistToQueue(playlistId: string) {
         const spotifyQueue = this
-        return new Promise(function(resolve, reject) {
-            spotifyQueue.refershTokenIfRequired().then(function() {
-                return spotifyApi.getPlaylist(playlistId).then(function(response) {
+        return new Promise(function (resolve, reject) {
+            spotifyQueue.refershTokenIfRequired().then(function () {
+                return spotifyApi.getPlaylist(playlistId).then(function (response) {
                     let playlistName = response.body.name
                     let tracks = response.body.tracks.items
-                    tracks = tracks.map(function(playlistTrack) {
+                    tracks = tracks.map(function (playlistTrack) {
                         return playlistTrack.track
                     })
                     spotifyQueue.addSeveralTracksToQueue(tracks)
                     resolve(`${tracks.length} tracks from playlist ${playlistName}`)
 
                 })
-            }).catch(function(error) {
+            }).catch(function (error) {
                 console.error(error)
                 reject('Could not add playlist tracks')
             })
@@ -233,7 +233,7 @@ export default class SpotifyQueue {
                 spotifyQueue.queue.push(track)
 
                 if (!spotifyQueue.currentTrack && spotifyQueue.active && spotifyQueue.queue.length == 1) {
-                    spotifyQueue.playNextTrack().catch(function(error) {
+                    spotifyQueue.playNextTrack().catch(function (error) {
                         console.error(error)
                     })
                 }
@@ -260,7 +260,7 @@ export default class SpotifyQueue {
 
             if (currentTrackId != track.trackId || timeLeft <= 0) {
                 spotifyQueue.currentTrack = null
-                spotifyQueue.playNextTrack().catch(function(error) {
+                spotifyQueue.playNextTrack().catch(function (error) {
                     console.log(error)
                 })
             } else {
@@ -271,10 +271,10 @@ export default class SpotifyQueue {
                     spotifyQueue.checkIfTrackEnded(thisPlayNumber, track)
                 }, timeToWait)
             }
-        }).catch(function(error) {
+        }).catch(function (error) {
             error.console.error(error)
             console.error('Failed to assess playback state, retrying in 2 seconds')
-            setTimeout(function() {
+            setTimeout(function () {
                 spotifyQueue.checkIfTrackEnded(thisPlayNumber, track)
             }, 2000)
         })
@@ -283,15 +283,15 @@ export default class SpotifyQueue {
     stop() {
         const spotifyQueue = this
 
-        return new Promise(function(resolve, reject) {
-            return spotifyQueue.refershTokenIfRequired().then(function() {
+        return new Promise(function (resolve, reject) {
+            return spotifyQueue.refershTokenIfRequired().then(function () {
                 return spotifyApi.pause({
                     device_id: spotifyQueue.deviceId
                 })
-            }).then(function() {
+            }).then(function () {
                 spotifyQueue.active = false
                 resolve()
-            }).catch(function(error) {
+            }).catch(function (error) {
                 console.error(error)
                 reject('Stop request failed, ensure a device is online.')
             })
@@ -304,17 +304,17 @@ export default class SpotifyQueue {
 
     getDevicesString(): Promise<any> {
         const spotifyQueue = this
-        return new Promise(function(resolve, reject) {
-            return spotifyQueue.refershTokenIfRequired().then(function() {
+        return new Promise(function (resolve, reject) {
+            return spotifyQueue.refershTokenIfRequired().then(function () {
                 return spotifyApi.getMyDevices()
-            }).then(function(response) {
+            }).then(function (response) {
                 const devices = response.body.devices
                 let devicesString = 'Devices:'
                 for (const device of devices) {
                     devicesString = `${devicesString}\n*${device.name}*: ${device.id}`
                 }
                 resolve(devicesString)
-            }).catch(function(error) {
+            }).catch(function (error) {
                 console.error(error)
                 reject('Failed to load devices')
             })
@@ -322,12 +322,30 @@ export default class SpotifyQueue {
     }
 
     setDeviceId(deviceId: string) {
-        this.deviceId = deviceId
+        const spotifyQueue = this
+        return new Promise(function (resolve, reject) {
+            spotifyQueue.refershTokenIfRequired().then(function () {
+                return spotifyApi.getMyDevices()
+            }).then(function (response) {
+                const devices = response.body.devices
+                const deviceValid = devices.find(function (device) {
+                    return device.id == deviceId
+                })
+                if (deviceValid) {
+                    resolve("Device set")
+                } else {
+                    reject("Device requested not valid")
+                }
+            }).catch(function (error) {
+                console.error(error)
+                reject("Failed to load devices")
+            })
+        })
     }
 
     playNextTrack() {
         const spotifyQueue = this
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
             if (spotifyQueue.queue.length == 0) {
                 reject('Queue is empty.')
                 return
@@ -335,7 +353,7 @@ export default class SpotifyQueue {
 
             const track = spotifyQueue.queue[0]
 
-            return spotifyQueue.refershTokenIfRequired().then(function() {
+            return spotifyQueue.refershTokenIfRequired().then(function () {
                 return Promise.all([
                     spotifyApi.setRepeat({
                         state: 'off',
@@ -345,7 +363,7 @@ export default class SpotifyQueue {
                         uris: [track.uri],
                         device_id: spotifyQueue.deviceId
                     })
-                ]).then(function() {
+                ]).then(function () {
                     console.log(`playing ${track.name} will finish in ${track.duration_ms} miliseconds`)
 
                     spotifyQueue.queue = spotifyQueue.queue.slice(1, spotifyQueue.queue.length)
@@ -359,11 +377,11 @@ export default class SpotifyQueue {
                     }, track.duration_ms)
 
                     resolve(track.name)
-                }).catch(function(error) {
+                }).catch(function (error) {
                     console.error(error)
                     reject('Play request failed, ensure a device is online.')
                 })
-            }).catch(function(error) {
+            }).catch(function (error) {
                 console.error(error)
                 reject('Failed to authenticate.')
             })
