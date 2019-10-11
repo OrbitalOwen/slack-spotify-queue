@@ -126,13 +126,23 @@ export default class SpotifyQueue {
         })
     }
 
-
-    getQueueString(): string {
-        if (this.queue.length == 0) {
-            return 'Queue empty'
+    getCurrentTrackName(): string {
+        if (this.active) {
+            return this.currentTrack.name
         }
+    }
 
-        let queueString = 'Queue is:'
+    getStatusString(): string {
+        const currentTrackName = this.getCurrentTrackName()
+        let queueString: string
+        if (currentTrackName) {
+            queueString = `Now playing: ${currentTrackName}\nQueue is:`
+        } else {
+            queueString = 'Queue is:'
+            if (this.queue.length == 0) {
+                return 'Queue empty'
+            }
+        }
 
         for (var i = 0; i < Math.min(this.queue.length, 10); i++) {
             const trackObject = this.queue[i]
@@ -163,12 +173,6 @@ export default class SpotifyQueue {
         }
 
         return track
-    }
-
-    getCurrentTrackName(): string {
-        if (this.active) {
-            return this.currentTrack.name
-        }
     }
 
     private addSeveralTracksToQueue(tracks) {

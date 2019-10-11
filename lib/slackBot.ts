@@ -25,7 +25,7 @@ All commands must be directed at me using @
 \`play\` - Begins playing the queue
 \`stop\` - Stops playing the queue
 \`clear\` - Clear the queue
-\`display\` - Display the first ten tracks in the queue
+\`status\` - Display the currently playing track and the first ten tracks in the queue
 \`skip\` - Vote to skip the current track, ${skipThreshold} vote(s) are required
 \`showdevices\` - Show currently available device ids
 \`setdevice\` - Set device id to play from
@@ -78,8 +78,8 @@ All commands must be directed at me using @
         } else if (command == 'clear') {
             spotifyQueue.clearQueue()
             resolve('Queue cleared')
-        } else if (command == 'display') {
-            const queueString = spotifyQueue.getQueueString()
+        } else if (command == 'status') {
+            const queueString = spotifyQueue.getStatusString()
             resolve(queueString)
         } else if (command == 'skip') {
             const doSkip = skipVoter.registerVote(userId)
