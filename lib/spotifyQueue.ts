@@ -329,7 +329,9 @@ export default class SpotifyQueue {
             }).then(function (response) {
                 const devices = response.body.devices
                 const deviceValid = devices.find(function (device) {
-                    return device.id == deviceId
+                    if (device.id == deviceId && !device.is_restricted) {
+                        return true
+                    }
                 })
                 if (deviceValid) {
                     resolve("Device set")
@@ -339,6 +341,36 @@ export default class SpotifyQueue {
             }).catch(function (error) {
                 console.error(error)
                 reject("Failed to load devices")
+            })
+        })
+    }
+
+    findDeviceId() {
+        const spotifyQueue = this
+        return new Promise(function (resolve, reject) {
+            spotifyQueue.refershTokenIfRequired().then(function () {
+                return spotifyApi.getMyDevices()
+            }).then(function (response) {
+                const devices = response.body.devices
+                let activeDevice = devices.find(function (device) {
+                    if (device.is_active && !device.is_restricted) {
+                        return true
+                    }
+                })
+                if (!activeDevice) {
+                    activeDevice = devices.find(function (device) {
+                        return !device.is_restricted
+                    })
+                }
+                if (activeDevice) {
+                    this.setDeviceId(activeDevice.id)
+                    resolve()
+                } else {
+                    reject("No device availible for playback")
+                }
+            }).catch(function (error) {
+                console.error(error)
+                reject("Error looking for device")
             })
         })
     }
@@ -354,7 +386,9 @@ export default class SpotifyQueue {
             const track = spotifyQueue.queue[0]
 
             return spotifyQueue.refershTokenIfRequired().then(function () {
+                let findDevicePromise = !this.device_id ? spotifyQueue.findDeviceId() : Promise.resolve()
                 return Promise.all([
+                    findDevicePromise,
                     spotifyApi.setRepeat({
                         state: 'off',
                         device_id: spotifyQueue.deviceId
@@ -378,6 +412,7 @@ export default class SpotifyQueue {
 
                     resolve(track.name)
                 }).catch(function (error) {
+                    // TODO: Handle attempting to play a bad track
                     console.error(error)
                     reject('Play request failed, ensure a device is online.')
                 })
