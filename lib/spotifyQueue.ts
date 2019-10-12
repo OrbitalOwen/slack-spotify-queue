@@ -9,7 +9,7 @@ const scopes = [
 ]
 
 const spotifyApi = new SpotifyWebApi({
-    redirectUri: 'http://localhost:8800/callback',
+    redirectUri: `http://localhost:${process.env.AUTH_PORT}/callback`,
     clientId: process.env.SPOTIFY_CLIENT_ID,
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET
 });
@@ -101,7 +101,7 @@ export default class SpotifyQueue {
                 });
             })
 
-            expressServer = expressApp.listen(8800)
+            expressServer = expressApp.listen(+process.env.AUTH_PORT)
 
             const authorizeURL = spotifyApi.createAuthorizeURL(scopes, '')
             openUrl(authorizeURL)

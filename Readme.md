@@ -7,6 +7,7 @@ Create a `.env` file in this project's directory with the following information:
 - `SLACK_BOT_TOKEN` - Create an app on `https://api.slack.com/apps/`, include a bot user, add to your workplace and retrieve the `Bot User OAuth Access Token` under `OAuth & Permissions`
 - `BOT_USER_ID` - The bot's user id (not user name)
 - `SKIP_THRESHOLD` - The number of skip votes required before a song is skipped
+- `AUTH_PORT` - The port to use for spotify's authentication flow
 
 Install dependencies using `npm install`
 
