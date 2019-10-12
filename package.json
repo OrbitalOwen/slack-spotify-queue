@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "@slack/rtm-api": "^5.0.2",
+    "@types/dotenv": "^6.1.1",
     "@types/node": "^12.7.5",
     "@types/spotify-web-api-node": "^4.0.1",
     "dotenv": "^8.1.0",
@@ -19,5 +20,7 @@
     "spotify-web-api-node": "^4.0.0",
     "typescript": "^3.6.3"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "tslint": "^5.20.0"
+  }
 }
