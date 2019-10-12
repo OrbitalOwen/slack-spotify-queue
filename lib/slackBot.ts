@@ -106,7 +106,7 @@ All commands must be directed at me using @
     })
 }
 
-function messageRecieved(client: RTMClient, event, spotifyQueue: SpotifyQueue, skipVoter: SkipVoter) {
+function messageRecieved(client: RTMClient, event, spotifyQueue: SpotifyQueue, skipVoter: SkipVoter): void {
     if (event.text) {
         const botMessage = getMessageToBot(event.text)
         if (botMessage) {
@@ -145,7 +145,7 @@ export default class SlackBot {
         this.skipVoter = new SkipVoter(spotifyQueue, skipThreshold)
     }
 
-    listenForMessages() {
+    listenForMessages(): void {
         const client = new RTMClient(botToken)
 
         client.on('message', (event) => {

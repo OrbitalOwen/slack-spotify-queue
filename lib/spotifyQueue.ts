@@ -1,6 +1,6 @@
-import * as SpotifyWebApi from 'spotify-web-api-node'
-import * as express from 'express'
-import * as openUrl from 'open'
+import SpotifyWebApi from 'spotify-web-api-node'
+import express from 'express'
+import openUrl from 'open'
 
 const scopes = [
     'user-read-playback-state',
@@ -25,7 +25,7 @@ function getCurrentTime(): number {
     return new Date().getTime() / 1000
 }
 
-function getObjectName(objectInfo): string {
+function getObjectName(objectInfo: SpotifyApi.SingleAlbumResponse | SpotifyApi.TrackObjectSimplified): string {
     let nameString
     let artistsString
     if (objectInfo.name) {
@@ -77,7 +77,7 @@ export default class SpotifyQueue {
         return this.currentPlayNumber
     }
 
-    authorize() {
+    authorize(): Promise<string | null> {
         const spotifyQueue = this
         return new Promise(function (resolve, reject) {
             const expressApp = express()
@@ -103,12 +103,12 @@ export default class SpotifyQueue {
 
             expressServer = expressApp.listen(8800)
 
-            const authorizeURL = spotifyApi.createAuthorizeURL(scopes)
+            const authorizeURL = spotifyApi.createAuthorizeURL(scopes, '')
             openUrl(authorizeURL)
         })
     };
 
-    private refershTokenIfRequired() {
+    private refershTokenIfRequired(): Promise<string | null> {
         const spotifyQueue = this
         return new Promise(function (resolve, reject) {
             if (getCurrentTime() > spotifyQueue.tokenExpirationEpoch - 300) {
@@ -158,12 +158,12 @@ export default class SpotifyQueue {
         return queueString
     }
 
-    private createTrackEntry(trackInfo): Track {
+    private createTrackEntry(trackInfo: SpotifyApi.TrackObjectSimplified): Track {
         const name = getObjectName(trackInfo)
         const duration_ms = trackInfo.duration_ms
 
         let uri = trackInfo.uri
-        let trackId = trackInfo.trackId
+        let trackId = trackInfo.id
 
         const track: Track = {
             name,
@@ -175,7 +175,7 @@ export default class SpotifyQueue {
         return track
     }
 
-    private addSeveralTracksToQueue(tracks) {
+    private addSeveralTracksToQueue(tracks: SpotifyApi.TrackObjectSimplified[]): void {
         let spotifyQueue = this
         for (const trackInfo of tracks) {
             const track = spotifyQueue.createTrackEntry(trackInfo)
@@ -188,7 +188,7 @@ export default class SpotifyQueue {
         }
     }
 
-    addAlbumToQueue(albumId: string) {
+    addAlbumToQueue(albumId: string): Promise<string | null> {
         const spotifyQueue = this
         return new Promise(function (resolve, reject) {
             spotifyQueue.refershTokenIfRequired().then(function () {
@@ -205,14 +205,14 @@ export default class SpotifyQueue {
         })
     }
 
-    addPlaylistToQueue(playlistId: string) {
+    addPlaylistToQueue(playlistId: string): Promise<string | null> {
         const spotifyQueue = this
         return new Promise(function (resolve, reject) {
             spotifyQueue.refershTokenIfRequired().then(function () {
                 return spotifyApi.getPlaylist(playlistId).then(function (response) {
-                    let playlistName = response.body.name
-                    let tracks = response.body.tracks.items
-                    tracks = tracks.map(function (playlistTrack) {
+                    const playlistName = response.body.name
+                    const playlistTracks = response.body.tracks.items
+                    const tracks = playlistTracks.map(function (playlistTrack) {
                         return playlistTrack.track
                     })
                     spotifyQueue.addSeveralTracksToQueue(tracks)
@@ -226,7 +226,7 @@ export default class SpotifyQueue {
         })
     }
 
-    addTrackToQueue(trackId: string) {
+    addTrackToQueue(trackId: string): Promise<string | null> {
         const spotifyQueue = this
         return new Promise(function (resolve, reject) {
             spotifyQueue.refershTokenIfRequired().then(function () {
@@ -250,7 +250,7 @@ export default class SpotifyQueue {
         })
     }
 
-    private checkIfTrackEnded(thisPlayNumber: number, track: Track) {
+    private checkIfTrackEnded(thisPlayNumber: number, track: Track): void {
         const spotifyQueue = this
         // Check to see if the queue has moved onto the next track already
         if (thisPlayNumber != spotifyQueue.currentPlayNumber) {
@@ -284,7 +284,7 @@ export default class SpotifyQueue {
         })
     }
 
-    stop() {
+    stop(): Promise<string | null> {
         const spotifyQueue = this
 
         return new Promise(function (resolve, reject) {
@@ -302,11 +302,7 @@ export default class SpotifyQueue {
         })
     }
 
-    getCurrentTrack() {
-
-    }
-
-    getDevicesString(): Promise<any> {
+    getDevicesString(): Promise<string> {
         const spotifyQueue = this
         return new Promise(function (resolve, reject) {
             return spotifyQueue.refershTokenIfRequired().then(function () {
@@ -325,7 +321,7 @@ export default class SpotifyQueue {
         })
     }
 
-    setDeviceId(deviceId: string) {
+    setDeviceId(deviceId: string): Promise<string | null> {
         const spotifyQueue = this
         return new Promise(function (resolve, reject) {
             spotifyQueue.refershTokenIfRequired().then(function () {
@@ -349,7 +345,7 @@ export default class SpotifyQueue {
         })
     }
 
-    findDeviceId() {
+    findDeviceId(): Promise<string | null> {
         const spotifyQueue = this
         return new Promise(function (resolve, reject) {
             spotifyQueue.refershTokenIfRequired().then(function () {
@@ -379,7 +375,7 @@ export default class SpotifyQueue {
         })
     }
 
-    playNextTrack() {
+    playNextTrack(): Promise<string | null> {
         const spotifyQueue = this
         return new Promise(function (resolve, reject) {
             if (spotifyQueue.queue.length == 0) {
@@ -390,7 +386,7 @@ export default class SpotifyQueue {
             const track = spotifyQueue.queue[0]
 
             return spotifyQueue.refershTokenIfRequired().then(function () {
-                let findDevicePromise = !this.device_id ? spotifyQueue.findDeviceId() : Promise.resolve()
+                let findDevicePromise = !this.device_id ? spotifyQueue.findDeviceId() : Promise.resolve(null)
                 return Promise.all([
                     findDevicePromise,
                     spotifyApi.setRepeat({
