@@ -1,3 +1,5 @@
+This project is still in production and is not stable yet.
+
 ## Setup
 
 Create a `.env` file in this project's directory with the following information:
