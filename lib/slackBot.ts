@@ -127,8 +127,11 @@ All commands must be directed at me using @
                     reject(error);
                 });
         } else if (command === "setdevice") {
-            spotifyQueue.setDeviceId(params);
-            resolve("Device ID set - play to verify");
+            spotifyQueue.setDeviceId(params).then(function(response) {
+                resolve(response);
+            }).catch(function(error) {
+                reject(error);
+            });
         }
     });
 }
