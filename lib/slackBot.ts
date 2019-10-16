@@ -3,13 +3,14 @@ import { RTMClient } from "@slack/rtm-api";
 import SpotifyQueue from "./spotifyQueue";
 import SkipVoter from "./skipVoter";
 import identifySpotifyResource from "./identifySpotifyResource";
+import config from "./config";
 
-const botToken: string = process.env.SLACK_BOT_TOKEN;
-const botUserId: string = process.env.BOT_USER_ID;
-const skipThreshold: number = Number(process.env.SKIP_THRESHOLD);
+const SLACK_BOT_TOKEN = config.get("SLACK_BOT_TOKEN");
+const BOT_USER_ID = config.get("BOT_USER_ID");
+const SKIP_THRESHOLD = config.get("SKIP_THRESHOLD");
 
 function getMessageToBot(text: string): string {
-    const botTag = `<@${botUserId.trim()}>`;
+    const botTag = `<@${BOT_USER_ID.trim()}>`;
     if (text.startsWith(botTag)) {
         return text.substring(botTag.length + 1, text.length);
     }
@@ -32,7 +33,7 @@ All commands must be directed at me using @
 \`stop\` - Stops playing the queue
 \`clear\` - Clear the queue
 \`status\` - Display the currently playing track and the first ten tracks in the queue
-\`skip\` - Vote to skip the current track, ${skipThreshold} vote(s) are required
+\`skip\` - Vote to skip the current track, ${SKIP_THRESHOLD} vote(s) are required
 \`showdevices\` - Show currently available device ids
 \`setdevice\` - Set device id to play from
             `);
@@ -175,11 +176,11 @@ export default class SlackBot {
 
     constructor(spotifyQueue) {
         this.spotifyQueue = spotifyQueue;
-        this.skipVoter = new SkipVoter(spotifyQueue, skipThreshold);
+        this.skipVoter = new SkipVoter(spotifyQueue, SKIP_THRESHOLD);
     }
 
     public listenForMessages(): void {
-        const client = new RTMClient(botToken);
+        const client = new RTMClient(SLACK_BOT_TOKEN);
 
         client.on("message", (event) => {
             messageRecieved(client, event, this.spotifyQueue, this.skipVoter);

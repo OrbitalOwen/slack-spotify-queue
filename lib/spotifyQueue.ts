@@ -2,12 +2,20 @@ import SpotifyWebApi from "spotify-web-api-node";
 import express from "express";
 import openUrl from "open";
 
+import config from "./config";
+
+const SPOTIFY_ACCESS_TOKEN = config.get("SPOTIFY_ACCESS_TOKEN");
+const SPOTIFY_REFRESH_TOKEN = config.get("SPOTIFY_REFRESH_TOKEN");
+const AUTH_PORT = config.get("AUTH_PORT");
+const SPOTIFY_CLIENT_ID = config.get("SPOTIFY_CLIENT_ID");
+const SPOTIFY_CLIENT_SECRET = config.get("SPOTIFY_CLIENT_SECRET");
+
 const scopes = ["user-read-playback-state", "user-read-currently-playing", "user-modify-playback-state"];
 
 const spotifyApi = new SpotifyWebApi({
-    redirectUri: `http://localhost:${process.env.AUTH_PORT}/callback`,
-    clientId: process.env.SPOTIFY_CLIENT_ID,
-    clientSecret: process.env.SPOTIFY_CLIENT_SECRET
+    redirectUri: `http://localhost:${AUTH_PORT}/callback`,
+    clientId: SPOTIFY_CLIENT_ID,
+    clientSecret: SPOTIFY_CLIENT_SECRET
 });
 
 interface ITrack {
@@ -76,32 +84,47 @@ export default class SpotifyQueue {
     public authorize(): Promise<string | null> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
-            const expressApp = express();
-            let expressServer;
+            if (!SPOTIFY_ACCESS_TOKEN && !SPOTIFY_REFRESH_TOKEN) {
+                // No auth code is availible in the env, we need to prompt the spotify authentication flow to get one
+                const expressApp = express();
+                let expressServer;
 
-            expressApp.get("/callback", function(request, response) {
-                const authCode = request.query.code;
+                expressApp.get("/callback", function(request, response) {
+                    const authCode = request.query.code;
+                    spotifyApi
+                        .authorizationCodeGrant(authCode)
+                        .then(function(data) {
+                            spotifyApi.setAccessToken(data.body.access_token);
+                            spotifyApi.setRefreshToken(data.body.refresh_token);
+                            spotifyQueue.tokenExpirationEpoch = getCurrentTime() + data.body.expires_in;
+                            response.send("You may now close this window.");
+                            expressServer.close();
+                            return Promise.all([
+                                config.write("SPOTIFY_ACCESS_TOKEN", data.body.access_token),
+                                config.write("SPOTIFY_REFRESH_TOKEN", data.body.refresh_token),
+                            ])
+                        }).then(function() {
+                            resolve();
+                        })
+                        .catch(function(error) {
+                            reject(error);
+                        });
+                });
 
-                spotifyApi
-                    .authorizationCodeGrant(authCode)
-                    .then(function(data) {
-                        spotifyApi.setAccessToken(data.body.access_token);
-                        spotifyApi.setRefreshToken(data.body.refresh_token);
-                        spotifyQueue.tokenExpirationEpoch = getCurrentTime() + data.body.expires_in;
+                expressServer = expressApp.listen(+AUTH_PORT);
 
-                        response.send("You may now close this window.");
-                        expressServer.close();
-                        resolve();
-                    })
-                    .catch(function(error) {
-                        reject(error);
-                    });
-            });
-
-            expressServer = expressApp.listen(+process.env.AUTH_PORT);
-
-            const authorizeURL = spotifyApi.createAuthorizeURL(scopes, "");
-            openUrl(authorizeURL);
+                const authorizeURL = spotifyApi.createAuthorizeURL(scopes, "");
+                openUrl(authorizeURL);
+            } else {
+                // We already have an auth code stored in the env
+                spotifyApi.setAccessToken(SPOTIFY_ACCESS_TOKEN);
+                spotifyApi.setRefreshToken(SPOTIFY_REFRESH_TOKEN);
+                spotifyQueue.refershTokenIfRequired().then(function() {
+                    resolve();
+                }).catch(function(error) {
+                    reject(error);
+                });
+            }
         });
     }
 

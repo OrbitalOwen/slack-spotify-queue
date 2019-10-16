@@ -1,6 +1,3 @@
-import * as dotenv from "dotenv";
-dotenv.config();
-
 import SlackBot from "./lib/slackBot";
 import SpotifyQueue from "./lib/spotifyQueue";
 
@@ -8,6 +5,7 @@ const queue = new SpotifyQueue();
 const bot = new SlackBot(queue);
 
 queue
+
     .authorize()
     .then(function() {
         console.log("Spotify authorized, listening for slack messages");
