@@ -101,9 +101,10 @@ export default class SpotifyQueue {
                             expressServer.close();
                             return Promise.all([
                                 config.write("SPOTIFY_ACCESS_TOKEN", data.body.access_token),
-                                config.write("SPOTIFY_REFRESH_TOKEN", data.body.refresh_token),
-                            ])
-                        }).then(function() {
+                                config.write("SPOTIFY_REFRESH_TOKEN", data.body.refresh_token)
+                            ]);
+                        })
+                        .then(function() {
                             resolve();
                         })
                         .catch(function(error) {
@@ -119,11 +120,14 @@ export default class SpotifyQueue {
                 // We already have an auth code stored in the env
                 spotifyApi.setAccessToken(SPOTIFY_ACCESS_TOKEN);
                 spotifyApi.setRefreshToken(SPOTIFY_REFRESH_TOKEN);
-                spotifyQueue.refershTokenIfRequired().then(function() {
-                    resolve();
-                }).catch(function(error) {
-                    reject(error);
-                });
+                spotifyQueue
+                    .refershTokenIfRequired()
+                    .then(function() {
+                        resolve();
+                    })
+                    .catch(function(error) {
+                        reject(error);
+                    });
             }
         });
     }
@@ -243,16 +247,16 @@ export default class SpotifyQueue {
                         : Promise.resolve(null);
                     return findDevicePromise
                         .then(function() {
-                            return Promise.all([
-                                spotifyApi.setRepeat({
-                                    state: "off",
-                                    device_id: spotifyQueue.deviceId
-                                }),
-                                spotifyApi.play({
-                                    uris: [track.uri],
-                                    device_id: spotifyQueue.deviceId
-                                })
-                            ]);
+                            return spotifyApi.setRepeat({
+                                state: "off",
+                                device_id: spotifyQueue.deviceId
+                            });
+                        })
+                        .then(function() {
+                            return spotifyApi.play({
+                                uris: [track.uri],
+                                device_id: spotifyQueue.deviceId
+                            });
                         })
                         .then(function() {
                             console.log(`playing ${track.name} will finish in ${track.duration_ms} miliseconds`);
@@ -342,6 +346,7 @@ export default class SpotifyQueue {
                         }
                     });
                     if (deviceValid) {
+                        spotifyQueue.deviceId = deviceId;
                         resolve("Device set");
                     } else {
                         reject("Device requested not valid");
@@ -470,11 +475,11 @@ export default class SpotifyQueue {
                         });
                     }
                     if (activeDevice) {
-                        spotifyQueue.setDeviceId(activeDevice.id);
-                        resolve();
-                    } else {
-                        reject("No device availible for playback");
+                        return spotifyQueue.setDeviceId(activeDevice.id);
                     }
+                })
+                .then(function() {
+                    resolve();
                 })
                 .catch(function(error) {
                     console.error(error);

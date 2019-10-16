@@ -13,11 +13,10 @@
     "@types/dotenv": "^6.1.1",
     "@types/node": "^12.7.5",
     "@types/spotify-web-api-node": "^4.0.1",
-    "dotenv": "^8.1.0",
     "express": "^4.17.1",
     "open": "^6.4.0",
     "request": "^2.88.0",
-    "spotify-web-api-node": "https://github.com/OrbitalOwen/spotify-web-api-node/tarball/bf8024dd7d09f2b168aee84da5f7426392ca774a",
+    "spotify-web-api-node": "https://github.com/OrbitalOwen/spotify-web-api-node/tarball/300946a304bcc168e9d0d75ab237c94d8e3daa3e",
     "typescript": "^3.6.3"
   },
   "devDependencies": {
