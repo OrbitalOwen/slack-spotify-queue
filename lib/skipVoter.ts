@@ -13,7 +13,11 @@ export default class SkipVoter {
         this.votes = [];
     }
 
-    public registerVote(slackUserId): boolean {
+    public canSkip(slackUserId: string): boolean {
+        return !this.votes.includes(slackUserId);
+    }
+
+    public registerVote(slackUserId: string): boolean {
         if (!this.spotifyQueue.isActive()) {
             return false;
         }
@@ -21,7 +25,7 @@ export default class SkipVoter {
         if (currentPlayNumber !== this.votePlayNumber) {
             this.reset(currentPlayNumber);
         }
-        if (!this.votes.includes(slackUserId)) {
+        if (this.canSkip(slackUserId)) {
             this.votes.push(slackUserId);
         }
         return this.votes.length >= this.skipThreshold;

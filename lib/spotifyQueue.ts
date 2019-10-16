@@ -1,6 +1,7 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import express from "express";
 import openUrl from "open";
+import { IResource } from "./identifySpotifyResource";
 
 import config from "./config";
 
@@ -23,6 +24,7 @@ interface ITrack {
     duration_ms: number;
     uri: string;
     trackId: string;
+    userId: string;
 }
 
 function getCurrentTime(): number {
@@ -121,7 +123,7 @@ export default class SpotifyQueue {
                 spotifyApi.setAccessToken(SPOTIFY_ACCESS_TOKEN);
                 spotifyApi.setRefreshToken(SPOTIFY_REFRESH_TOKEN);
                 spotifyQueue
-                    .refershTokenIfRequired()
+                    .refreshTokenIfRequired()
                     .then(function() {
                         resolve();
                     })
@@ -133,12 +135,12 @@ export default class SpotifyQueue {
     }
 
     public getStatusString(): string {
-        const currentTrackName = this.getCurrentTrackName();
+        const currentTrackName = this.getCurrentTrackName(true);
         let queueString: string;
         if (currentTrackName) {
-            queueString = `Now playing: ${currentTrackName}\nQueue is:`;
+            queueString = `*Now playing:*\n${currentTrackName}\n*Queue is:*`;
         } else {
-            queueString = "Queue is:";
+            queueString = "*Queue is:*";
             if (this.queue.length === 0) {
                 return "Queue empty";
             }
@@ -147,7 +149,7 @@ export default class SpotifyQueue {
         for (let i = 0; i < Math.min(this.queue.length, 10); i++) {
             const trackObject = this.queue[i];
             const position = i + 1;
-            queueString = `${queueString}\n${position}: ${trackObject.name}`;
+            queueString = `${queueString}\n${position}: ${trackObject.name} (<@${trackObject.userId}>)`;
         }
 
         const excess = Math.max(0, this.queue.length - 10);
@@ -158,75 +160,14 @@ export default class SpotifyQueue {
         return queueString;
     }
 
-    public addAlbumToQueue(albumId: string): Promise<string | null> {
-        const spotifyQueue: SpotifyQueue = this;
-        return new Promise(function(resolve, reject) {
-            spotifyQueue
-                .refershTokenIfRequired()
-                .then(function() {
-                    return spotifyApi.getAlbum(albumId).then(function(response) {
-                        const albumName = getObjectName(response.body);
-                        const tracks = response.body.tracks.items;
-                        spotifyQueue.addSeveralTracksToQueue(tracks);
-                        resolve(`${tracks.length} tracks from album ${albumName}`);
-                    });
-                })
-                .catch(function(error) {
-                    console.error(error);
-                    reject("Could not add album tracks ");
-                });
-        });
-    }
-
-    public addPlaylistToQueue(playlistId: string): Promise<string | null> {
-        const spotifyQueue: SpotifyQueue = this;
-        return new Promise(function(resolve, reject) {
-            spotifyQueue
-                .refershTokenIfRequired()
-                .then(function() {
-                    return spotifyApi.getPlaylist(playlistId).then(function(response) {
-                        const playlistName = response.body.name;
-                        const playlistTracks = response.body.tracks.items;
-                        const tracks = playlistTracks.map(function(playlistTrack) {
-                            return playlistTrack.track;
-                        });
-                        spotifyQueue.addSeveralTracksToQueue(tracks);
-                        resolve(`${tracks.length} tracks from playlist ${playlistName}`);
-                    });
-                })
-                .catch(function(error) {
-                    console.error(error);
-                    reject("Could not add playlist tracks");
-                });
-        });
-    }
-
-    public addTrackToQueue(trackId: string): Promise<string | null> {
-        const spotifyQueue: SpotifyQueue = this;
-        return new Promise(function(resolve, reject) {
-            spotifyQueue
-                .refershTokenIfRequired()
-                .then(function() {
-                    return spotifyApi.getTrack(trackId);
-                })
-                .then(function(response) {
-                    const track = spotifyQueue.createTrackEntry(response.body);
-
-                    spotifyQueue.queue.push(track);
-
-                    if (!spotifyQueue.currentTrack && spotifyQueue.active && spotifyQueue.queue.length === 1) {
-                        spotifyQueue.playNextTrack().catch(function(error) {
-                            console.error(error);
-                        });
-                    }
-
-                    resolve(track.name);
-                })
-                .catch(function(error) {
-                    console.error(error);
-                    reject("Failed to add track to queue.");
-                });
-        });
+    public addResourceToQueue(resource: IResource, userId: string): Promise<string | null> {
+        if (resource.type === "track") {
+            return this.addTrackToQueue(resource.id, userId);
+        } else if (resource.type === "album") {
+            return this.addAlbumToQueue(resource.id, userId);
+        } else if (resource.type === "playlist") {
+            return this.addPlaylistToQueue(resource.id, userId);
+        }
     }
 
     public playNextTrack(): Promise<string | null> {
@@ -240,7 +181,7 @@ export default class SpotifyQueue {
             const track = spotifyQueue.queue[0];
 
             return spotifyQueue
-                .refershTokenIfRequired()
+                .refreshTokenIfRequired()
                 .then(function() {
                     const findDevicePromise = !spotifyQueue.deviceId
                         ? spotifyQueue.findDeviceId()
@@ -290,7 +231,7 @@ export default class SpotifyQueue {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             return spotifyQueue
-                .refershTokenIfRequired()
+                .refreshTokenIfRequired()
                 .then(function() {
                     return spotifyApi.pause({
                         device_id: spotifyQueue.deviceId
@@ -311,7 +252,7 @@ export default class SpotifyQueue {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             return spotifyQueue
-                .refershTokenIfRequired()
+                .refreshTokenIfRequired()
                 .then(function() {
                     return spotifyApi.getMyDevices();
                 })
@@ -334,7 +275,7 @@ export default class SpotifyQueue {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             spotifyQueue
-                .refershTokenIfRequired()
+                .refreshTokenIfRequired()
                 .then(function() {
                     return spotifyApi.getMyDevices();
                 })
@@ -359,13 +300,88 @@ export default class SpotifyQueue {
         });
     }
 
-    public getCurrentTrackName(): string {
+    public getCurrentTrackName(withAuthor?: boolean): string {
         if (this.active) {
-            return this.currentTrack.name;
+            if (withAuthor) {
+                return `${this.currentTrack.name} (<@${this.currentTrack.userId}>)`;
+            } else {
+                return this.currentTrack.name;
+            }
         }
     }
 
-    private refershTokenIfRequired(): Promise<string | null> {
+    private addAlbumToQueue(albumId: string, userId: string): Promise<string | null> {
+        const spotifyQueue: SpotifyQueue = this;
+        return new Promise(function(resolve, reject) {
+            spotifyQueue
+                .refreshTokenIfRequired()
+                .then(function() {
+                    return spotifyApi.getAlbum(albumId).then(function(response) {
+                        const albumName = getObjectName(response.body);
+                        const tracks = response.body.tracks.items;
+                        spotifyQueue.addSeveralTracksToQueue(tracks, userId);
+                        resolve(`${tracks.length} tracks from album ${albumName}`);
+                    });
+                })
+                .catch(function(error) {
+                    console.error(error);
+                    reject("Could not add album tracks ");
+                });
+        });
+    }
+
+    private addPlaylistToQueue(playlistId: string, userId: string): Promise<string | null> {
+        const spotifyQueue: SpotifyQueue = this;
+        return new Promise(function(resolve, reject) {
+            spotifyQueue
+                .refreshTokenIfRequired()
+                .then(function() {
+                    return spotifyApi.getPlaylist(playlistId).then(function(response) {
+                        const playlistName = response.body.name;
+                        const playlistTracks = response.body.tracks.items;
+                        const tracks = playlistTracks.map(function(playlistTrack) {
+                            return playlistTrack.track;
+                        });
+                        spotifyQueue.addSeveralTracksToQueue(tracks, userId);
+                        resolve(`${tracks.length} tracks from playlist ${playlistName}`);
+                    });
+                })
+                .catch(function(error) {
+                    console.error(error);
+                    reject("Could not add playlist tracks");
+                });
+        });
+    }
+
+    private addTrackToQueue(trackId: string, userId: string): Promise<string | null> {
+        const spotifyQueue: SpotifyQueue = this;
+        return new Promise(function(resolve, reject) {
+            spotifyQueue
+                .refreshTokenIfRequired()
+                .then(function() {
+                    return spotifyApi.getTrack(trackId);
+                })
+                .then(function(response) {
+                    const track = spotifyQueue.createTrackEntry(response.body, userId);
+
+                    spotifyQueue.queue.push(track);
+
+                    if (!spotifyQueue.currentTrack && spotifyQueue.active && spotifyQueue.queue.length === 1) {
+                        spotifyQueue.playNextTrack().catch(function(error) {
+                            console.error(error);
+                        });
+                    }
+
+                    resolve(track.name);
+                })
+                .catch(function(error) {
+                    console.error(error);
+                    reject("Failed to add track to queue.");
+                });
+        });
+    }
+
+    private refreshTokenIfRequired(): Promise<string | null> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             if (getCurrentTime() > spotifyQueue.tokenExpirationEpoch - 300) {
@@ -386,7 +402,7 @@ export default class SpotifyQueue {
         });
     }
 
-    private createTrackEntry(trackInfo: SpotifyApi.TrackObjectSimplified): ITrack {
+    private createTrackEntry(trackInfo: SpotifyApi.TrackObjectSimplified, userId: string): ITrack {
         const name = getObjectName(trackInfo);
         const duration_ms = trackInfo.duration_ms;
 
@@ -397,16 +413,17 @@ export default class SpotifyQueue {
             name,
             duration_ms,
             uri,
-            trackId
+            trackId,
+            userId
         };
 
         return track;
     }
 
-    private addSeveralTracksToQueue(tracks: SpotifyApi.TrackObjectSimplified[]): void {
+    private addSeveralTracksToQueue(tracks: SpotifyApi.TrackObjectSimplified[], userId: string): void {
         const spotifyQueue: SpotifyQueue = this;
         for (const trackInfo of tracks) {
-            const track = spotifyQueue.createTrackEntry(trackInfo);
+            const track = spotifyQueue.createTrackEntry(trackInfo, userId);
             spotifyQueue.queue.push(track);
         }
         if (spotifyQueue.active && spotifyQueue.queue.length === 1) {
@@ -423,7 +440,7 @@ export default class SpotifyQueue {
             return;
         }
         spotifyQueue
-            .refershTokenIfRequired()
+            .refreshTokenIfRequired()
             .then(function() {
                 return spotifyApi.getMyCurrentPlayingTrack();
             })
@@ -458,7 +475,7 @@ export default class SpotifyQueue {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             spotifyQueue
-                .refershTokenIfRequired()
+                .refreshTokenIfRequired()
                 .then(function() {
                     return spotifyApi.getMyDevices();
                 })

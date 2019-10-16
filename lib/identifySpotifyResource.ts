@@ -1,12 +1,12 @@
 const URL_START = "https://open.spotify.com/";
 const URI_START = "spotify:";
 
-interface IResource {
+export interface IResource {
     type: string;
     id: string;
 }
 
-export default function(rawInputString: string): IResource | null {
+function identifySpotifyResource(rawInputString: string): IResource | null {
     let inputString = rawInputString.trim();
 
     if (inputString.startsWith("<") && inputString.endsWith(">")) {
@@ -33,3 +33,5 @@ export default function(rawInputString: string): IResource | null {
         }
     }
 }
+
+export default identifySpotifyResource;

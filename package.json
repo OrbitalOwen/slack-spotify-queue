@@ -1,25 +1,26 @@
 {
-  "name": "slack-spotify-queue",
-  "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "start": "tsc && node index.js"
-  },
-  "author": "OrbitalOwen",
-  "license": "MIT",
-  "dependencies": {
-    "@slack/rtm-api": "^5.0.2",
-    "@types/dotenv": "^6.1.1",
-    "@types/node": "^12.7.5",
-    "@types/spotify-web-api-node": "^4.0.1",
-    "express": "^4.17.1",
-    "open": "^6.4.0",
-    "request": "^2.88.0",
-    "spotify-web-api-node": "https://github.com/OrbitalOwen/spotify-web-api-node/tarball/300946a304bcc168e9d0d75ab237c94d8e3daa3e",
-    "typescript": "^3.6.3"
-  },
-  "devDependencies": {
-    "tslint": "^5.20.0"
-  }
+    "name": "slack-spotify-queue",
+    "version": "0.0.1",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "start": "tsc && node index.js"
+    },
+    "author": "OrbitalOwen",
+    "license": "MIT",
+    "dependencies": {
+        "@slack/rtm-api": "^5.0.2",
+        "@slack/web-api": "^5.2.1",
+        "@types/node": "^12.7.5",
+        "@types/spotify-web-api-node": "^4.0.1",
+        "express": "^4.17.1",
+        "open": "^6.4.0",
+        "request": "^2.88.0",
+        "seratch-slack-types": "^0.3.6",
+        "spotify-web-api-node": "https://github.com/OrbitalOwen/spotify-web-api-node/tarball/300946a304bcc168e9d0d75ab237c94d8e3daa3e",
+        "typescript": "^3.6.3"
+    },
+    "devDependencies": {
+        "tslint": "^5.20.0"
+    }
 }

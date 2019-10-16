@@ -4,6 +4,8 @@ import SpotifyQueue from "./lib/spotifyQueue";
 const queue = new SpotifyQueue();
 const bot = new SlackBot(queue);
 
+// bot.listenForMessages();
+
 queue
 
     .authorize()
