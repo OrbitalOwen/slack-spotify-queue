@@ -9,13 +9,6 @@ const SLACK_BOT_TOKEN = config.get("SLACK_BOT_TOKEN");
 const BOT_USER_ID = config.get("BOT_USER_ID");
 const SKIP_THRESHOLD = config.get("SKIP_THRESHOLD");
 
-function getMessageToBot(text: string): string {
-    const botTag = `<@${BOT_USER_ID.trim()}>`;
-    if (text.startsWith(botTag)) {
-        return text.substring(botTag.length + 1, text.length);
-    }
-}
-
 function executeCommand(
     spotifyQueue: SpotifyQueue,
     skipVoter: SkipVoter,
@@ -128,24 +121,31 @@ All commands must be directed at me using @
                     reject(error);
                 });
         } else if (command === "setdevice") {
-            spotifyQueue.setDeviceId(params).then(function(response) {
-                resolve(response);
-            }).catch(function(error) {
-                reject(error);
-            });
+            spotifyQueue
+                .setDeviceId(params)
+                .then(function(response) {
+                    resolve(response);
+                })
+                .catch(function(error) {
+                    reject(error);
+                });
         }
     });
 }
 
+function isDM(channelId: string): boolean {
+    return channelId.startsWith("D");
+}
+
 function messageRecieved(client: RTMClient, event, spotifyQueue: SpotifyQueue, skipVoter: SkipVoter): void {
     if (event.text) {
-        const botMessage = getMessageToBot(event.text);
-        if (botMessage) {
-            console.log(botMessage);
-            const spaceIndex = botMessage.indexOf(" ");
+        const message = event.text;
+        if (isDM(event.channel)) {
+            console.log(message);
+            const spaceIndex = message.indexOf(" ");
             const hasParams = spaceIndex !== -1;
-            const command = hasParams ? botMessage.substring(0, spaceIndex) : botMessage;
-            const params = hasParams ? botMessage.substring(spaceIndex + 1) : "";
+            const command = hasParams ? message.substring(0, spaceIndex) : message;
+            const params = hasParams ? message.substring(spaceIndex + 1) : "";
 
             const threadTs = event.thread_ts ? event.thread_ts : event.ts;
 
@@ -182,7 +182,7 @@ export default class SlackBot {
     public listenForMessages(): void {
         const client = new RTMClient(SLACK_BOT_TOKEN);
 
-        client.on("message", (event) => {
+        client.on("message", event => {
             messageRecieved(client, event, this.spotifyQueue, this.skipVoter);
         });
 
