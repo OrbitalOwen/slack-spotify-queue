@@ -14,6 +14,10 @@ export default class SkipVoter {
     }
 
     public canSkip(slackUserId: string): boolean {
+        const currentPlayNumber = this.spotifyQueue.getCurrentPlayNumber();
+        if (currentPlayNumber !== this.votePlayNumber) {
+            return true;
+        }
         return !this.votes.includes(slackUserId);
     }
 
