@@ -202,7 +202,6 @@ export default class SpotifyQueue {
                                     device_id: spotifyQueue.deviceId
                                 })
                                 .then(function() {
-                                    console.log(`play ${track.uri} ${spotifyQueue.deviceId}`);
                                     return spotifyApi.play({
                                         uris: [track.uri],
                                         device_id: spotifyQueue.deviceId
@@ -604,7 +603,6 @@ export default class SpotifyQueue {
                         });
                     }
                     if (activeDevice) {
-                        console.log("found device");
                         spotifyQueue.deviceId = activeDevice.id;
                         resolve();
                     } else {
