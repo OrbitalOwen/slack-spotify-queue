@@ -7,7 +7,6 @@ interface IConfig {
     SPOTIFY_CLIENT_ID: string;
     SPOTIFY_CLIENT_SECRET: string;
     SLACK_BOT_TOKEN: string;
-    BOT_USER_ID: string;
     SKIP_THRESHOLD: string;
     AUTH_PORT: string;
     SPOTIFY_ACCESS_TOKEN?: string;

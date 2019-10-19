@@ -7,7 +7,6 @@ import identifySpotifyResource from "./identifySpotifyResource";
 import config from "./config";
 
 const SLACK_BOT_TOKEN = config.get("SLACK_BOT_TOKEN");
-const BOT_USER_ID = config.get("BOT_USER_ID");
 const SKIP_THRESHOLD = config.get("SKIP_THRESHOLD");
 const BROADCAST_CHANNEL = config.get("BROADCAST_CHANNEL");
 

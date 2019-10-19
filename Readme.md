@@ -9,7 +9,6 @@ Create a `config.json` file in the project's directory, with the following templ
     "SPOTIFY_CLIENT_ID": "", // Create app on https://developer.spotify.com and retieve from dashboard
     "SPOTIFY_CLIENT_SECRET": "", // Create app on https://developer.spotify.com and retieve from dashboard
     "SLACK_BOT_TOKEN": "", // Create an app on `https://api.slack.com/apps/`, include a bot user, add to your workplace and retrieve the `Bot User OAuth Access Token` under `OAuth & Permissions`
-    "BOT_USER_ID": "", // The bot's user id (not user name)
     "SKIP_THRESHOLD": "3", // The number of skip votes required before a song is skipped
     "AUTH_PORT": "8080", // The port to use for spotify's authentication flow. Ensure the URL http://localhost:AUTH_PORT/callback is whitelisted on your spotify app
     "BROADCAST_CHANNEL": "", // Optional, channel id 'broadcast' level messages are sent to, otherwise they are DM'd to the command sender
