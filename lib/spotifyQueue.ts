@@ -25,6 +25,7 @@ interface ITrack {
     uri: string;
     trackId: string;
     userId: string;
+    groupName?: string;
 }
 interface ICommandResult {
     success: boolean;
@@ -64,13 +65,15 @@ export default class SpotifyQueue {
     private queue: ITrack[];
     private tokenExpirationEpoch: number;
     private active: boolean;
-    private currentPlayNumber: number;
+    private currentTrackNumber: number;
+    private currentGroupNumber: number;
     private currentTrack: ITrack;
     private deviceId: string;
 
     constructor() {
         this.queue = [];
-        this.currentPlayNumber = 0;
+        this.currentTrackNumber = 0;
+        this.currentGroupNumber = 0;
         this.tokenExpirationEpoch = 0;
         this.active = false;
     }
@@ -83,8 +86,16 @@ export default class SpotifyQueue {
         this.queue = [];
     }
 
-    public getCurrentPlayNumber(): number {
-        return this.currentPlayNumber;
+    public getQueueLength() {
+        return this.queue.length;
+    }
+
+    public getCurrentTrackNumber(): number {
+        return this.currentTrackNumber;
+    }
+
+    public getCurrentGroupNumber(): number {
+        return this.currentGroupNumber;
     }
 
     public authorize(): Promise<any> {
@@ -165,6 +176,7 @@ export default class SpotifyQueue {
     }
 
     public addResourceToQueue(resource: IResource, userId: string): Promise<ICommandResult> {
+        this.currentGroupNumber += 1;
         if (resource.type === "track") {
             return this.addTrackToQueue(resource.id, userId);
         } else if (resource.type === "album") {
@@ -213,8 +225,8 @@ export default class SpotifyQueue {
                                     );
 
                                     spotifyQueue.queue = spotifyQueue.queue.slice(1, spotifyQueue.queue.length);
-                                    spotifyQueue.currentPlayNumber = spotifyQueue.currentPlayNumber + 1;
-                                    const thisPlayNumber = spotifyQueue.currentPlayNumber;
+                                    spotifyQueue.currentTrackNumber = spotifyQueue.currentTrackNumber + 1;
+                                    const thisPlayNumber = spotifyQueue.currentTrackNumber;
                                     spotifyQueue.currentTrack = track;
                                     spotifyQueue.active = true;
 
@@ -370,13 +382,35 @@ export default class SpotifyQueue {
         });
     }
 
-    public getCurrentTrackName(withAuthor?: boolean): string {
+    public getCurrentTrackName(withAuthor?: boolean): string | null {
         if (this.active) {
             if (withAuthor) {
                 return `${this.currentTrack.name} (<@${this.currentTrack.userId}>)`;
             } else {
                 return this.currentTrack.name;
             }
+        }
+    }
+
+    public getCurrentGroupName(): string | null {
+        if (this.currentTrack) {
+            return this.currentTrack.groupName;
+        }
+    }
+
+    public removeCurrentGroupFromQueue() {
+        const currentGroupName = this.getCurrentGroupName();
+
+        if (this.queue.length > 0) {
+            let nextTrackIndex: number;
+            for (let i = 0; i < this.queue.length; i++) {
+                const track = this.queue[i];
+                if (track.groupName === currentGroupName) {
+                    nextTrackIndex = i;
+                }
+            }
+
+            this.queue = this.queue.slice(nextTrackIndex + 1, this.queue.length);
         }
     }
 
@@ -391,7 +425,7 @@ export default class SpotifyQueue {
                         .then(function(response) {
                             const albumName = getObjectName(response.body);
                             const tracks = response.body.tracks.items;
-                            spotifyQueue.addSeveralTracksToQueue(tracks, userId);
+                            spotifyQueue.addSeveralTracksToQueue(tracks, userId, albumName);
                             resolve({
                                 success: true,
                                 message: `${tracks.length} tracks from album ${albumName}`
@@ -429,7 +463,7 @@ export default class SpotifyQueue {
                             const tracks = playlistTracks.map(function(playlistTrack) {
                                 return playlistTrack.track;
                             });
-                            spotifyQueue.addSeveralTracksToQueue(tracks, userId);
+                            spotifyQueue.addSeveralTracksToQueue(tracks, userId, playlistName);
                             resolve({
                                 success: true,
                                 message: `${tracks.length} tracks from playlist ${playlistName}`
@@ -513,28 +547,34 @@ export default class SpotifyQueue {
         });
     }
 
-    private createTrackEntry(trackInfo: SpotifyApi.TrackObjectSimplified, userId: string): ITrack {
+    private createTrackEntry(trackInfo: SpotifyApi.TrackObjectSimplified, userId: string, groupName?: string): ITrack {
         const name = getObjectName(trackInfo);
         const duration_ms = trackInfo.duration_ms;
 
         const uri = trackInfo.uri;
         const trackId = trackInfo.id;
+        const groupNumber = this.currentGroupNumber;
 
         const track: ITrack = {
             name,
             duration_ms,
             uri,
             trackId,
-            userId
+            userId,
+            groupName
         };
 
         return track;
     }
 
-    private addSeveralTracksToQueue(tracks: SpotifyApi.TrackObjectSimplified[], userId: string): void {
+    private addSeveralTracksToQueue(
+        tracks: SpotifyApi.TrackObjectSimplified[],
+        userId: string,
+        groupName: string
+    ): void {
         const spotifyQueue: SpotifyQueue = this;
         for (const trackInfo of tracks) {
-            const track = spotifyQueue.createTrackEntry(trackInfo, userId);
+            const track = spotifyQueue.createTrackEntry(trackInfo, userId, groupName);
             spotifyQueue.queue.push(track);
         }
         if (spotifyQueue.active && spotifyQueue.queue.length === 1) {
@@ -547,7 +587,7 @@ export default class SpotifyQueue {
     private checkIfTrackEnded(thisPlayNumber: number, track: ITrack): void {
         const spotifyQueue: SpotifyQueue = this;
         // Check to see if the queue has moved onto the next track already, or if the queue is not active
-        if (thisPlayNumber !== spotifyQueue.currentPlayNumber || !spotifyQueue.active) {
+        if (thisPlayNumber !== spotifyQueue.currentTrackNumber || !spotifyQueue.active) {
             return;
         }
         spotifyQueue
@@ -574,8 +614,8 @@ export default class SpotifyQueue {
                 }
             })
             .catch(function(error) {
-                error.console.error(error);
-                console.error("Failed to assess playback state, retrying in 2 seconds");
+                console.error(error);
+                console.log("Failed to assess playback state, retrying in 2 seconds");
                 setTimeout(function() {
                     spotifyQueue.checkIfTrackEnded(thisPlayNumber, track);
                 }, 2000);

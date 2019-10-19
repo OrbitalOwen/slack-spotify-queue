@@ -186,24 +186,43 @@ All commands must be DM'd to me.
         skip(slackBot: SlackBot, params: string, userId: string): Promise<ICommandResponse> {
             return new Promise(function(resolve) {
                 if (slackBot.spotifyQueue.isActive()) {
-                    if (slackBot.skipVoter.canSkip(userId)) {
-                        const doSkip = slackBot.skipVoter.registerVote(userId);
+                    let skipGroup = params === "group" || params === "album" || params === "playlist";
+                    if (skipGroup) {
+                        if (!slackBot.spotifyQueue.getCurrentGroupName()) {
+                            skipGroup = false;
+                        }
+                    }
+                    const currentName = skipGroup
+                        ? slackBot.spotifyQueue.getCurrentGroupName()
+                        : slackBot.spotifyQueue.getCurrentTrackName();
+                    const typeSkipped = skipGroup ? "album or playlist" : "track";
+                    const canSkip = skipGroup
+                        ? slackBot.skipVoter.canSkipGroup(userId)
+                        : slackBot.skipVoter.canSkipTrack(userId);
+                    if (canSkip) {
+                        const doSkip = skipGroup
+                            ? slackBot.skipVoter.registerGroupVote(userId)
+                            : slackBot.skipVoter.registerTrackVote(userId);
                         if (doSkip) {
-                            const currentTrackName = slackBot.spotifyQueue.getCurrentTrackName();
-                            slackBot.spotifyQueue
-                                .playNextTrack()
+                            if (skipGroup) {
+                                slackBot.spotifyQueue.removeCurrentGroupFromQueue();
+                            }
+                            const queueLength = slackBot.spotifyQueue.getQueueLength();
+                            const spotifyAction =
+                                queueLength > 0 ? slackBot.spotifyQueue.playNextTrack() : slackBot.spotifyQueue.stop();
+                            spotifyAction
                                 .then(function(result) {
                                     if (result.success) {
                                         resolve({
                                             success: true,
                                             type: "broadcast",
-                                            message: `<@${userId}> voted to skip the current track. Now skipping ${currentTrackName}.`
+                                            message: `<@${userId}> voted to skip the current ${typeSkipped}. Now skipping ${currentName}.`
                                         });
                                     } else {
                                         resolve({
                                             success: false,
                                             type: "message",
-                                            message: `Error skipping the current track: ${result.message}`
+                                            message: `Error skipping the current ${typeSkipped}: ${result.message}`
                                         });
                                     }
                                 })
@@ -216,25 +235,24 @@ All commands must be DM'd to me.
                                     });
                                 });
                         } else {
-                            const trackName = slackBot.spotifyQueue.getCurrentTrackName();
                             resolve({
                                 success: true,
                                 type: "broadcast",
-                                message: `<@${userId}> voted to skip the current track (${trackName}).`
+                                message: `<@${userId}> voted to skip the current ${typeSkipped}: ${currentName}.`
                             });
                         }
                     } else {
                         resolve({
                             success: false,
                             type: "message",
-                            message: `You have already voted to skip this track.`
+                            message: `You have already voted to skip this ${typeSkipped}.`
                         });
                     }
                 } else {
                     resolve({
                         success: false,
                         type: "message",
-                        message: `No track is currently playing.`
+                        message: `Spotify is not currently playing.`
                     });
                 }
             });
