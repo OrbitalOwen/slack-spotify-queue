@@ -176,14 +176,31 @@ export default class SpotifyQueue {
     }
 
     public addResourceToQueue(resource: IResource, userId: string): Promise<ICommandResult> {
-        this.currentGroupNumber += 1;
-        if (resource.type === "track") {
-            return this.addTrackToQueue(resource.id, userId);
-        } else if (resource.type === "album") {
-            return this.addAlbumToQueue(resource.id, userId);
-        } else if (resource.type === "playlist") {
-            return this.addPlaylistToQueue(resource.id, userId);
-        }
+        const spotifyQueue: SpotifyQueue = this;
+        spotifyQueue.currentGroupNumber += 1;
+        return new Promise(function(resolve, reject) {
+            const addPromise =
+                resource.type === "track"
+                    ? spotifyQueue.addTrackToQueue(resource.id, userId)
+                    : resource.type === "album"
+                    ? spotifyQueue.addAlbumToQueue(resource.id, userId)
+                    : spotifyQueue.addPlaylistToQueue(resource.id, userId);
+            addPromise
+                .then(function(result) {
+                    if (result.success) {
+                        if (!spotifyQueue.currentTrack) {
+                            return spotifyQueue.playNextTrack();
+                        }
+                    }
+                    resolve(result);
+                })
+                .then(function(result) {
+                    resolve(result);
+                })
+                .catch(function(error) {
+                    reject(error);
+                });
+        });
     }
 
     public playNextTrack(): Promise<ICommandResult> {
@@ -278,6 +295,7 @@ export default class SpotifyQueue {
                         })
                         .then(function() {
                             spotifyQueue.active = false;
+                            spotifyQueue.currentTrack = null;
                             resolve({
                                 success: true
                             });
@@ -497,12 +515,8 @@ export default class SpotifyQueue {
                         .getTrack(trackId)
                         .then(function(response) {
                             const track = spotifyQueue.createTrackEntry(response.body, userId);
-
                             spotifyQueue.queue.push(track);
 
-                            if (!spotifyQueue.currentTrack && spotifyQueue.active && spotifyQueue.queue.length === 1) {
-                                return spotifyQueue.playNextTrack();
-                            }
                             resolve({
                                 success: true,
                                 message: track.name
@@ -577,11 +591,6 @@ export default class SpotifyQueue {
             const track = spotifyQueue.createTrackEntry(trackInfo, userId, groupName);
             spotifyQueue.queue.push(track);
         }
-        if (spotifyQueue.active && spotifyQueue.queue.length === 1) {
-            spotifyQueue.playNextTrack().catch(function(error) {
-                console.error(error);
-            });
-        }
     }
 
     private checkIfTrackEnded(thisPlayNumber: number, track: ITrack): void {
@@ -602,7 +611,11 @@ export default class SpotifyQueue {
                 if (currentTrackId === track.trackId || timeLeft <= 0) {
                     spotifyQueue.currentTrack = null;
                     spotifyQueue.playNextTrack().catch(function(error) {
-                        console.log(error);
+                        console.error(error);
+                        console.log("Failed to move onto next track. Retrying in 10 seconds");
+                        setTimeout(function() {
+                            spotifyQueue.checkIfTrackEnded(thisPlayNumber, track);
+                        }, 10000);
                     });
                 } else {
                     // Check again after the remaining duration has elapsed
