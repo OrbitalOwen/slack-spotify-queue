@@ -62,19 +62,27 @@ All commands must be DM'd to me.
                 if (resource) {
                     slackBot.spotifyQueue
                         .addResourceToQueue(resource, userId)
-                        .then(function(resourceString) {
-                            resolve({
-                                type: "broadcast",
-                                success: true,
-                                message: `<@${userId}> added ${resourceString} to queue.`
-                            });
+                        .then(function(result) {
+                            if (result.success) {
+                                resolve({
+                                    success: true,
+                                    type: "broadcast",
+                                    message: `<@${userId}> added ${result.message} to queue.`
+                                });
+                            } else {
+                                resolve({
+                                    success: false,
+                                    type: "message",
+                                    message: result.message
+                                });
+                            }
                         })
                         .catch(function(error) {
-                            console.log(error);
+                            console.error(error);
                             resolve({
-                                type: "message",
                                 success: false,
-                                message: `Spotify resource not recognised.`
+                                type: "message",
+                                message: `Unspecified error with request.`
                             });
                         });
                 }
@@ -87,26 +95,36 @@ All commands must be DM'd to me.
                 if (!isActive || params === "force") {
                     slackBot.spotifyQueue
                         .playNextTrack()
-                        .then(function(trackName) {
-                            resolve({
-                                success: true,
-                                type: "broadcast",
-                                message:
-                                    params !== "force"
-                                        ? `<@${userId}> started playback.`
-                                        : `<@${userId}> forced the next track.`
-                            });
+                        .then(function(result) {
+                            if (result.success) {
+                                resolve({
+                                    success: true,
+                                    type: "broadcast",
+                                    message:
+                                        params !== "force"
+                                            ? `<@${userId}> started playback.`
+                                            : `<@${userId}> forced the next track.`
+                                });
+                            } else {
+                                resolve({
+                                    success: false,
+                                    type: "message",
+                                    message: result.message
+                                });
+                            }
                         })
                         .catch(function(error) {
+                            console.error(error);
                             resolve({
-                                success: false
+                                success: false,
+                                type: "message",
+                                message: `Unspecified error with request.`
                             });
                         });
                 } else {
-                    console.log(params);
                     resolve({
-                        type: "message",
                         success: false,
+                        type: "message",
                         message: "Already playing, use `play force` to force"
                     });
                 }
@@ -117,16 +135,27 @@ All commands must be DM'd to me.
             return new Promise(function(resolve) {
                 slackBot.spotifyQueue
                     .stop()
-                    .then(function() {
-                        resolve({
-                            success: true,
-                            type: "broadcast",
-                            message: `<@${userId}> stopped playback.`
-                        });
+                    .then(function(result) {
+                        if (result.success) {
+                            resolve({
+                                success: true,
+                                type: "broadcast",
+                                message: `<@${userId}> stopped playback.`
+                            });
+                        } else {
+                            resolve({
+                                success: false,
+                                type: "message",
+                                message: result.message
+                            });
+                        }
                     })
                     .catch(function(error) {
+                        console.error(error);
                         resolve({
-                            success: false
+                            success: false,
+                            type: "message",
+                            message: `Unspecified error with request.`
                         });
                     });
             });
@@ -162,16 +191,27 @@ All commands must be DM'd to me.
                         const currentTrackName = slackBot.spotifyQueue.getCurrentTrackName();
                         slackBot.spotifyQueue
                             .playNextTrack()
-                            .then(function() {
-                                resolve({
-                                    success: true,
-                                    type: "broadcast",
-                                    message: `<@${userId}> voted to skip the current track. Now skipping ${currentTrackName}.`
-                                });
+                            .then(function(result) {
+                                if (result.success) {
+                                    resolve({
+                                        success: true,
+                                        type: "broadcast",
+                                        message: `<@${userId}> voted to skip the current track. Now skipping ${currentTrackName}.`
+                                    });
+                                } else {
+                                    resolve({
+                                        success: false,
+                                        type: "message",
+                                        message: `Error skipping the current track: ${result.message}`
+                                    });
+                                }
                             })
                             .catch(function(error) {
+                                console.error(error);
                                 resolve({
-                                    success: false
+                                    success: false,
+                                    type: "message",
+                                    message: `Unspecified error with request.`
                                 });
                             });
                     } else {
@@ -197,14 +237,17 @@ All commands must be DM'd to me.
                     .getDevicesString()
                     .then(function(response) {
                         resolve({
-                            success: true,
+                            success: response.success,
                             type: "message",
-                            message: response
+                            message: response.message
                         });
                     })
                     .catch(function(error) {
+                        console.error(error);
                         resolve({
-                            success: false
+                            success: false,
+                            type: "message",
+                            message: `Unspecified error with request.`
                         });
                     });
             });
@@ -215,15 +258,26 @@ All commands must be DM'd to me.
                 slackBot.spotifyQueue
                     .setDeviceId(params)
                     .then(function(response) {
-                        resolve({
-                            success: true,
-                            type: "broadcast",
-                            message: `<@${userId}> updated the device id.`
-                        });
+                        if (response.success) {
+                            resolve({
+                                success: true,
+                                type: "broadcast",
+                                message: `<@${userId}> updated the device id.`
+                            });
+                        } else {
+                            resolve({
+                                success: false,
+                                type: "message",
+                                message: response.message
+                            });
+                        }
                     })
                     .catch(function(error) {
+                        console.error(error);
                         resolve({
-                            success: false
+                            success: false,
+                            type: "message",
+                            message: `Unspecified error with request.`
                         });
                     });
             });

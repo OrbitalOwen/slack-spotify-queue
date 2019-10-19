@@ -13,7 +13,6 @@ queue
         console.log("Spotify authorized, listening for slack messages");
         bot.listenForMessages();
     })
-    .catch(function(error) {
-        console.error(error);
+    .catch(function() {
         console.error("Failed to authorize Spotify");
     });

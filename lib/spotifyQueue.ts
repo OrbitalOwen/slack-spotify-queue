@@ -26,6 +26,10 @@ interface ITrack {
     trackId: string;
     userId: string;
 }
+interface ICommandResult {
+    success: boolean;
+    message?: string;
+}
 
 function getCurrentTime(): number {
     return new Date().getTime() / 1000;
@@ -83,7 +87,7 @@ export default class SpotifyQueue {
         return this.currentPlayNumber;
     }
 
-    public authorize(): Promise<string | null> {
+    public authorize(): Promise<any> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             if (!SPOTIFY_ACCESS_TOKEN && !SPOTIFY_REFRESH_TOKEN) {
@@ -160,7 +164,7 @@ export default class SpotifyQueue {
         return queueString;
     }
 
-    public addResourceToQueue(resource: IResource, userId: string): Promise<string | null> {
+    public addResourceToQueue(resource: IResource, userId: string): Promise<ICommandResult> {
         if (resource.type === "track") {
             return this.addTrackToQueue(resource.id, userId);
         } else if (resource.type === "album") {
@@ -170,12 +174,15 @@ export default class SpotifyQueue {
         }
     }
 
-    public playNextTrack(): Promise<string | null> {
+    public playNextTrack(): Promise<ICommandResult> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             if (spotifyQueue.queue.length === 0) {
                 spotifyQueue.active = false;
-                reject("Queue is empty.");
+                resolve({
+                    success: false,
+                    message: "The queue is empty"
+                });
                 return;
             }
 
@@ -189,114 +196,177 @@ export default class SpotifyQueue {
                         : Promise.resolve(null);
                     return findDevicePromise
                         .then(function() {
-                            return spotifyApi.setRepeat({
-                                state: "off",
-                                device_id: spotifyQueue.deviceId
-                            });
-                        })
-                        .then(function() {
-                            return spotifyApi.play({
-                                uris: [track.uri],
-                                device_id: spotifyQueue.deviceId
-                            });
-                        })
-                        .then(function() {
-                            console.log(`playing ${track.name} will finish in ${track.duration_ms} miliseconds`);
+                            return spotifyApi
+                                .setRepeat({
+                                    state: "off",
+                                    device_id: spotifyQueue.deviceId
+                                })
+                                .then(function() {
+                                    console.log(`play ${track.uri} ${spotifyQueue.deviceId}`);
+                                    return spotifyApi.play({
+                                        uris: [track.uri],
+                                        device_id: spotifyQueue.deviceId
+                                    });
+                                })
+                                .then(function() {
+                                    console.log(
+                                        `playing ${track.name} will finish in ${track.duration_ms} miliseconds`
+                                    );
 
-                            spotifyQueue.queue = spotifyQueue.queue.slice(1, spotifyQueue.queue.length);
-                            spotifyQueue.currentPlayNumber = spotifyQueue.currentPlayNumber + 1;
-                            const thisPlayNumber = spotifyQueue.currentPlayNumber;
-                            spotifyQueue.currentTrack = track;
-                            spotifyQueue.active = true;
+                                    spotifyQueue.queue = spotifyQueue.queue.slice(1, spotifyQueue.queue.length);
+                                    spotifyQueue.currentPlayNumber = spotifyQueue.currentPlayNumber + 1;
+                                    const thisPlayNumber = spotifyQueue.currentPlayNumber;
+                                    spotifyQueue.currentTrack = track;
+                                    spotifyQueue.active = true;
 
-                            setTimeout(function() {
-                                spotifyQueue.checkIfTrackEnded(thisPlayNumber, track);
-                            }, track.duration_ms);
+                                    setTimeout(function() {
+                                        spotifyQueue.checkIfTrackEnded(thisPlayNumber, track);
+                                    }, track.duration_ms);
 
-                            resolve(track.name);
+                                    resolve({
+                                        success: true,
+                                        message: track.name
+                                    });
+                                })
+                                .catch(function(error) {
+                                    // TODO: Handle attempting to play a bad track
+                                    console.error(error);
+                                    resolve({
+                                        success: false,
+                                        message: "Unable to play the current track"
+                                    });
+                                });
                         })
                         .catch(function(error) {
-                            // TODO: Handle attempting to play a bad track
                             console.error(error);
-                            reject("Play request failed, ensure a device is online.");
+                            resolve({
+                                success: false,
+                                message: "No device found"
+                            });
                         });
                 })
                 .catch(function(error) {
                     console.error(error);
-                    reject("Failed to authenticate.");
-                });
-        });
-    }
-
-    public stop(): Promise<string | null> {
-        const spotifyQueue: SpotifyQueue = this;
-        return new Promise(function(resolve, reject) {
-            return spotifyQueue
-                .refreshTokenIfRequired()
-                .then(function() {
-                    return spotifyApi.pause({
-                        device_id: spotifyQueue.deviceId
+                    resolve({
+                        success: false,
+                        message: "Could not authenticate with Spotify"
                     });
-                })
-                .then(function() {
-                    spotifyQueue.active = false;
-                    resolve();
-                })
-                .catch(function(error) {
-                    console.error(error);
-                    reject("Stop request failed, ensure a device is online.");
                 });
         });
     }
 
-    public getDevicesString(): Promise<string> {
+    public stop(): Promise<ICommandResult> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             return spotifyQueue
                 .refreshTokenIfRequired()
                 .then(function() {
-                    return spotifyApi.getMyDevices();
-                })
-                .then(function(response) {
-                    const devices = response.body.devices;
-                    let devicesString = "Devices:";
-                    for (const device of devices) {
-                        devicesString = `${devicesString}\n*${device.name}*: ${device.id}`;
-                    }
-                    resolve(devicesString);
+                    return spotifyApi
+                        .pause({
+                            device_id: spotifyQueue.deviceId
+                        })
+                        .then(function() {
+                            spotifyQueue.active = false;
+                            resolve({
+                                success: true
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error(error);
+                            resolve({
+                                success: false,
+                                message: "Unable to stop the current track"
+                            });
+                        });
                 })
                 .catch(function(error) {
                     console.error(error);
-                    reject("Failed to load devices");
+                    resolve({
+                        success: false,
+                        message: "Could not authenticate with Spotify"
+                    });
                 });
         });
     }
 
-    public setDeviceId(deviceId: string): Promise<string | null> {
+    public getDevicesString(): Promise<ICommandResult> {
+        const spotifyQueue: SpotifyQueue = this;
+        return new Promise(function(resolve, reject) {
+            return spotifyQueue
+                .refreshTokenIfRequired()
+                .then(function() {
+                    return spotifyApi
+                        .getMyDevices()
+                        .then(function(response) {
+                            const devices = response.body.devices;
+                            let devicesString = "Devices:";
+                            for (const device of devices) {
+                                devicesString = `${devicesString}\n*${device.name}*: ${device.id}`;
+                            }
+                            resolve({
+                                success: true,
+                                message: devicesString
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error(error);
+                            resolve({
+                                success: false,
+                                message: "Could not load devices from Spotify"
+                            });
+                        });
+                })
+                .catch(function(error) {
+                    console.error(error);
+                    resolve({
+                        success: false,
+                        message: "Could not authenticate with Spotify"
+                    });
+                });
+        });
+    }
+
+    public setDeviceId(deviceId: string): Promise<ICommandResult> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             spotifyQueue
                 .refreshTokenIfRequired()
                 .then(function() {
-                    return spotifyApi.getMyDevices();
-                })
-                .then(function(response) {
-                    const devices = response.body.devices;
-                    const deviceValid = devices.find(function(device) {
-                        if (device.id === deviceId && !device.is_restricted) {
-                            return true;
-                        }
-                    });
-                    if (deviceValid) {
-                        spotifyQueue.deviceId = deviceId;
-                        resolve("Device set");
-                    } else {
-                        reject("Device requested not valid");
-                    }
+                    return spotifyApi
+                        .getMyDevices()
+                        .then(function(response) {
+                            const devices = response.body.devices;
+                            const deviceValid = devices.find(function(device) {
+                                if (device.id === deviceId && !device.is_restricted) {
+                                    return true;
+                                }
+                            });
+                            if (deviceValid) {
+                                spotifyQueue.deviceId = deviceId;
+                                resolve({
+                                    success: true
+                                });
+                            } else {
+                                resolve({
+                                    success: false,
+                                    message: "The deviceId given is invalid for use"
+                                });
+                            }
+                        })
+                        .catch(function(error) {
+                            console.error(error);
+                            resolve({
+                                success: false,
+                                message: "Could not load devices from Spotify"
+                            });
+                        });
                 })
                 .catch(function(error) {
                     console.error(error);
-                    reject("Failed to load devices");
+                    resolve({
+                        success: false,
+                        message: "Could not authenticate with Spotify"
+                    });
                 });
         });
     }
@@ -311,78 +381,119 @@ export default class SpotifyQueue {
         }
     }
 
-    private addAlbumToQueue(albumId: string, userId: string): Promise<string | null> {
+    private addAlbumToQueue(albumId: string, userId: string): Promise<ICommandResult> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             spotifyQueue
                 .refreshTokenIfRequired()
                 .then(function() {
-                    return spotifyApi.getAlbum(albumId).then(function(response) {
-                        const albumName = getObjectName(response.body);
-                        const tracks = response.body.tracks.items;
-                        spotifyQueue.addSeveralTracksToQueue(tracks, userId);
-                        resolve(`${tracks.length} tracks from album ${albumName}`);
-                    });
-                })
-                .catch(function(error) {
-                    console.error(error);
-                    reject("Could not add album tracks ");
-                });
-        });
-    }
-
-    private addPlaylistToQueue(playlistId: string, userId: string): Promise<string | null> {
-        const spotifyQueue: SpotifyQueue = this;
-        return new Promise(function(resolve, reject) {
-            spotifyQueue
-                .refreshTokenIfRequired()
-                .then(function() {
-                    return spotifyApi.getPlaylist(playlistId).then(function(response) {
-                        const playlistName = response.body.name;
-                        const playlistTracks = response.body.tracks.items;
-                        const tracks = playlistTracks.map(function(playlistTrack) {
-                            return playlistTrack.track;
-                        });
-                        spotifyQueue.addSeveralTracksToQueue(tracks, userId);
-                        resolve(`${tracks.length} tracks from playlist ${playlistName}`);
-                    });
-                })
-                .catch(function(error) {
-                    console.error(error);
-                    reject("Could not add playlist tracks");
-                });
-        });
-    }
-
-    private addTrackToQueue(trackId: string, userId: string): Promise<string | null> {
-        const spotifyQueue: SpotifyQueue = this;
-        return new Promise(function(resolve, reject) {
-            spotifyQueue
-                .refreshTokenIfRequired()
-                .then(function() {
-                    return spotifyApi.getTrack(trackId);
-                })
-                .then(function(response) {
-                    const track = spotifyQueue.createTrackEntry(response.body, userId);
-
-                    spotifyQueue.queue.push(track);
-
-                    if (!spotifyQueue.currentTrack && spotifyQueue.active && spotifyQueue.queue.length === 1) {
-                        spotifyQueue.playNextTrack().catch(function(error) {
+                    return spotifyApi
+                        .getAlbum(albumId)
+                        .then(function(response) {
+                            const albumName = getObjectName(response.body);
+                            const tracks = response.body.tracks.items;
+                            spotifyQueue.addSeveralTracksToQueue(tracks, userId);
+                            resolve({
+                                success: true,
+                                message: `${tracks.length} tracks from album ${albumName}`
+                            });
+                        })
+                        .catch(function(error) {
                             console.error(error);
+                            resolve({
+                                success: false,
+                                message: "The resouce given is invalid"
+                            });
                         });
-                    }
-
-                    resolve(track.name);
                 })
                 .catch(function(error) {
                     console.error(error);
-                    reject("Failed to add track to queue.");
+                    resolve({
+                        success: false,
+                        message: "Could not authenticate with Spotify"
+                    });
                 });
         });
     }
 
-    private refreshTokenIfRequired(): Promise<string | null> {
+    private addPlaylistToQueue(playlistId: string, userId: string): Promise<ICommandResult> {
+        const spotifyQueue: SpotifyQueue = this;
+        return new Promise(function(resolve, reject) {
+            spotifyQueue
+                .refreshTokenIfRequired()
+                .then(function() {
+                    return spotifyApi
+                        .getPlaylist(playlistId)
+                        .then(function(response) {
+                            const playlistName = response.body.name;
+                            const playlistTracks = response.body.tracks.items;
+                            const tracks = playlistTracks.map(function(playlistTrack) {
+                                return playlistTrack.track;
+                            });
+                            spotifyQueue.addSeveralTracksToQueue(tracks, userId);
+                            resolve({
+                                success: true,
+                                message: `${tracks.length} tracks from playlist ${playlistName}`
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error(error);
+                            resolve({
+                                success: false,
+                                message: "The resouce given is invalid"
+                            });
+                        });
+                })
+                .catch(function(error) {
+                    console.error(error);
+                    resolve({
+                        success: false,
+                        message: "Could not authenticate with Spotify"
+                    });
+                });
+        });
+    }
+
+    private addTrackToQueue(trackId: string, userId: string): Promise<ICommandResult> {
+        const spotifyQueue: SpotifyQueue = this;
+        return new Promise(function(resolve, reject) {
+            spotifyQueue
+                .refreshTokenIfRequired()
+                .then(function() {
+                    return spotifyApi
+                        .getTrack(trackId)
+                        .then(function(response) {
+                            const track = spotifyQueue.createTrackEntry(response.body, userId);
+
+                            spotifyQueue.queue.push(track);
+
+                            if (!spotifyQueue.currentTrack && spotifyQueue.active && spotifyQueue.queue.length === 1) {
+                                return spotifyQueue.playNextTrack();
+                            }
+                            resolve({
+                                success: true,
+                                message: track.name
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error(error);
+                            resolve({
+                                success: false,
+                                message: "The resouce given is invalid"
+                            });
+                        });
+                })
+                .catch(function(error) {
+                    console.error(error);
+                    resolve({
+                        success: false,
+                        message: "Could not authenticate with Spotify"
+                    });
+                });
+        });
+    }
+
+    private refreshTokenIfRequired(): Promise<string> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             if (getCurrentTime() > spotifyQueue.tokenExpirationEpoch - 300) {
@@ -472,7 +583,7 @@ export default class SpotifyQueue {
             });
     }
 
-    private findDeviceId(): Promise<string | null> {
+    private findDeviceId(): Promise<null> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             spotifyQueue
@@ -493,15 +604,16 @@ export default class SpotifyQueue {
                         });
                     }
                     if (activeDevice) {
-                        return spotifyQueue.setDeviceId(activeDevice.id);
+                        console.log("found device");
+                        spotifyQueue.deviceId = activeDevice.id;
+                        resolve();
+                    } else {
+                        reject();
                     }
-                })
-                .then(function() {
-                    resolve();
                 })
                 .catch(function(error) {
                     console.error(error);
-                    reject("Error looking for device");
+                    reject();
                 });
         });
     }
