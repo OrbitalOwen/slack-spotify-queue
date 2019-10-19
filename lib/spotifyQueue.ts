@@ -87,7 +87,7 @@ export default class SpotifyQueue {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             if (!SPOTIFY_ACCESS_TOKEN && !SPOTIFY_REFRESH_TOKEN) {
-                // No auth code is availible in the env, we need to prompt the spotify authentication flow to get one
+                // No auth code is availible, we need to prompt the spotify authentication flow to get one
                 const expressApp = express();
                 let expressServer;
 
@@ -119,7 +119,7 @@ export default class SpotifyQueue {
                 const authorizeURL = spotifyApi.createAuthorizeURL(scopes, "");
                 openUrl(authorizeURL);
             } else {
-                // We already have an auth code stored in the env
+                // We already have an auth code stored
                 spotifyApi.setAccessToken(SPOTIFY_ACCESS_TOKEN);
                 spotifyApi.setRefreshToken(SPOTIFY_REFRESH_TOKEN);
                 spotifyQueue
@@ -174,6 +174,7 @@ export default class SpotifyQueue {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             if (spotifyQueue.queue.length === 0) {
+                spotifyQueue.active = false;
                 reject("Queue is empty.");
                 return;
             }
@@ -435,8 +436,8 @@ export default class SpotifyQueue {
 
     private checkIfTrackEnded(thisPlayNumber: number, track: ITrack): void {
         const spotifyQueue: SpotifyQueue = this;
-        // Check to see if the queue has moved onto the next track already
-        if (thisPlayNumber !== spotifyQueue.currentPlayNumber) {
+        // Check to see if the queue has moved onto the next track already, or if the queue is not active
+        if (thisPlayNumber !== spotifyQueue.currentPlayNumber || !spotifyQueue.active) {
             return;
         }
         spotifyQueue
