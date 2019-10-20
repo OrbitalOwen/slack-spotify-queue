@@ -22,8 +22,8 @@ Install dependencies using `npm install`
 ## Running
 
 -   Run using `npm start`
--   Unless, `SPOTIFY_ACCESS_TOKEN` and `SPOTIFY_REFRESH_TOKEN` are manually set in `config.json`, a web browser window will open the first time asking you to authenticate with Spotify.
--   Invite the bot to the channel they will broadcast from (if applicable) and DM commands to the bot(use `help`)
+-   Unless, `SPOTIFY_ACCESS_TOKEN` and `SPOTIFY_REFRESH_TOKEN` are manually set in `config.json`, a web browser window will open asking you to authenticate with Spotify. Once authenticated these values will be automatically written to `config.json`.
+-   Invite the bot to the channel they will broadcast from (if applicable) and DM commands to the bot (use `help` for more info)
 
 ## TODO
 

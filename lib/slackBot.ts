@@ -325,6 +325,11 @@ All commands must be DM'd to me.
             slackBot.messageRecieved(event);
         });
         this.rtmClient.start();
+        this.sendMessage(BROADCAST_CHANNEL, "Bot online. DM commands to me to begin playing.");
+        process.on("SIGINT", function() {
+            slackBot.sendMessage(BROADCAST_CHANNEL, "Bot shutting down.");
+            process.exit();
+        });
     }
 
     private processCommand(userId: string, command: string, params: string[]): Promise<ICommandResponse> {
@@ -339,6 +344,14 @@ All commands must be DM'd to me.
         });
     }
 
+    private sendMessage(channel: string, message: string) {
+        const slackBot = this;
+        slackBot.rtmClient.addOutgoingEvent(true, "message", {
+            text: message,
+            channel
+        });
+    }
+
     private handleResponse(event, response: ICommandResponse) {
         const slackBot = this;
         slackBot.webClient.reactions.add({
@@ -349,10 +362,7 @@ All commands must be DM'd to me.
         if (response.type === "message" || response.type === "broadcast") {
             const channel =
                 response.type === "broadcast" && BROADCAST_CHANNEL !== null ? BROADCAST_CHANNEL : event.channel;
-            slackBot.rtmClient.addOutgoingEvent(true, "message", {
-                text: response.message,
-                channel
-            });
+            this.sendMessage(channel, response.message);
         }
     }
 

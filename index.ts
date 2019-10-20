@@ -7,7 +7,6 @@ const bot = new SlackBot(queue);
 // bot.listenForMessages();
 
 queue
-
     .authorize()
     .then(function() {
         console.log("Spotify authorized, listening for slack messages");
