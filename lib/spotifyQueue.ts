@@ -10,6 +10,7 @@ const SPOTIFY_REFRESH_TOKEN = config.get("SPOTIFY_REFRESH_TOKEN");
 const AUTH_PORT = config.get("AUTH_PORT");
 const SPOTIFY_CLIENT_ID = config.get("SPOTIFY_CLIENT_ID");
 const SPOTIFY_CLIENT_SECRET = config.get("SPOTIFY_CLIENT_SECRET");
+const DEFAULT_TRACK_LIMIT = config.get("DEFAULT_TRACK_LIMIT");
 
 const scopes = ["user-read-playback-state", "user-read-currently-playing", "user-modify-playback-state"];
 
@@ -175,7 +176,7 @@ export default class SpotifyQueue {
         return queueString;
     }
 
-    public addResourceToQueue(resource: IResource, userId: string): Promise<ICommandResult> {
+    public addResourceToQueue(resource: IResource, userId: string, trackLimit?: number): Promise<ICommandResult> {
         const spotifyQueue: SpotifyQueue = this;
         spotifyQueue.currentGroupNumber += 1;
         return new Promise(function(resolve, reject) {
@@ -183,19 +184,26 @@ export default class SpotifyQueue {
                 resource.type === "track"
                     ? spotifyQueue.addTrackToQueue(resource.id, userId)
                     : resource.type === "album"
-                    ? spotifyQueue.addAlbumToQueue(resource.id, userId)
-                    : spotifyQueue.addPlaylistToQueue(resource.id, userId);
+                    ? spotifyQueue.addAlbumToQueue(resource.id, userId, trackLimit)
+                    : spotifyQueue.addPlaylistToQueue(resource.id, userId, trackLimit);
             addPromise
-                .then(function(result) {
-                    if (result.success) {
+                .then(function(addResult) {
+                    if (addResult.success) {
                         if (!spotifyQueue.currentTrack) {
-                            return spotifyQueue.playNextTrack();
+                            spotifyQueue
+                                .playNextTrack()
+                                .then(function(playResult) {
+                                    if (playResult.success) {
+                                        resolve(addResult);
+                                    } else {
+                                        resolve(playResult);
+                                    }
+                                })
+                                .catch(function(error) {
+                                    reject(error);
+                                });
                         }
                     }
-                    resolve(result);
-                })
-                .then(function(result) {
-                    resolve(result);
                 })
                 .catch(function(error) {
                     reject(error);
@@ -432,7 +440,7 @@ export default class SpotifyQueue {
         }
     }
 
-    private addAlbumToQueue(albumId: string, userId: string): Promise<ICommandResult> {
+    private addAlbumToQueue(albumId: string, userId: string, trackLimit?: number): Promise<ICommandResult> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             spotifyQueue
@@ -443,10 +451,12 @@ export default class SpotifyQueue {
                         .then(function(response) {
                             const albumName = getObjectName(response.body);
                             const tracks = response.body.tracks.items;
-                            spotifyQueue.addSeveralTracksToQueue(tracks, userId, albumName);
+                            const limit = trackLimit ? trackLimit : +DEFAULT_TRACK_LIMIT;
+                            const tracksAdded = Math.min(limit, tracks.length);
+                            spotifyQueue.addSeveralTracksToQueue(tracks, userId, albumName, trackLimit);
                             resolve({
                                 success: true,
-                                message: `${tracks.length} tracks from album ${albumName}`
+                                message: `${tracksAdded} tracks from album ${albumName}`
                             });
                         })
                         .catch(function(error) {
@@ -467,7 +477,7 @@ export default class SpotifyQueue {
         });
     }
 
-    private addPlaylistToQueue(playlistId: string, userId: string): Promise<ICommandResult> {
+    private addPlaylistToQueue(playlistId: string, userId: string, trackLimit?: number): Promise<ICommandResult> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             spotifyQueue
@@ -481,10 +491,12 @@ export default class SpotifyQueue {
                             const tracks = playlistTracks.map(function(playlistTrack) {
                                 return playlistTrack.track;
                             });
-                            spotifyQueue.addSeveralTracksToQueue(tracks, userId, playlistName);
+                            const limit = trackLimit ? trackLimit : +DEFAULT_TRACK_LIMIT;
+                            const tracksAdded = Math.min(limit, tracks.length);
+                            spotifyQueue.addSeveralTracksToQueue(tracks, userId, playlistName, trackLimit);
                             resolve({
                                 success: true,
-                                message: `${tracks.length} tracks from playlist ${playlistName}`
+                                message: `${tracksAdded} tracks from playlist ${playlistName}`
                             });
                         })
                         .catch(function(error) {
@@ -584,10 +596,12 @@ export default class SpotifyQueue {
     private addSeveralTracksToQueue(
         tracks: SpotifyApi.TrackObjectSimplified[],
         userId: string,
-        groupName: string
+        groupName: string,
+        trackLimit?: number
     ): void {
         const spotifyQueue: SpotifyQueue = this;
-        for (const trackInfo of tracks) {
+        for (let i = 0; i < Math.min(tracks.length, trackLimit); i++) {
+            const trackInfo = tracks[i];
             const track = spotifyQueue.createTrackEntry(trackInfo, userId, groupName);
             spotifyQueue.queue.push(track);
         }

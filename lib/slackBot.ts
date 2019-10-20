@@ -34,12 +34,12 @@ export default class SlackBot {
                     type: "message",
                     message: `
 All commands must be DM'd to me.
-\`add\` - Adds a track, album or playlist using a Spotify URL or URI
-\`play\` - Begins playing the queue
-\`stop\` - Stops playing the queue
-\`clear\` - Clear the queue
+\`add <URL/URI> <optional limit>\` - Adds a track, album or playlist using a Spotify URL or URI. If the resource is an album or playlist, the optional command limit specifies how many tracks to add.
+\`resume <optional force>\` - Resumes playback from the next track in the queue
+\`stop\` - Stops playback
+\`clear\` - Clears the queue
 \`status\` - Display the currently playing track and the first ten tracks in the queue
-\`skip\` - Vote to skip the current track, ${SKIP_THRESHOLD} vote(s) are required
+\`skip <optional album/group/playlist>\` - Vote to skip the current track, ${SKIP_THRESHOLD} vote(s) are required. If the optional album/group/playlist (interchangeable) argument is given, votes to skip the current album / playlist.
 \`showdevices\` - Show currently available device ids
 \`setdevice\` - Set device id to play from
 `
@@ -55,12 +55,14 @@ All commands must be DM'd to me.
             });
         },
 
-        add(slackBot: SlackBot, params: string, userId: string): Promise<ICommandResponse> {
+        add(slackBot: SlackBot, params: string[], userId: string): Promise<ICommandResponse> {
             return new Promise(function(resolve) {
-                const resource = identifySpotifyResource(params);
+                const resourceString = params[0];
+                const limit = params[1] ? +params[1] : null;
+                const resource = identifySpotifyResource(resourceString);
                 if (resource) {
                     slackBot.spotifyQueue
-                        .addResourceToQueue(resource, userId)
+                        .addResourceToQueue(resource, userId, limit)
                         .then(function(result) {
                             if (result.success) {
                                 resolve({
@@ -88,10 +90,10 @@ All commands must be DM'd to me.
             });
         },
 
-        play(slackBot: SlackBot, params: string, userId: string): Promise<ICommandResponse> {
+        resume(slackBot: SlackBot, params: string[], userId: string): Promise<ICommandResponse> {
             return new Promise(function(resolve) {
                 const isActive = slackBot.spotifyQueue.isActive();
-                if (!isActive || params === "force") {
+                if (!isActive || params[0] === "force") {
                     slackBot.spotifyQueue
                         .playNextTrack()
                         .then(function(result) {
@@ -100,8 +102,8 @@ All commands must be DM'd to me.
                                     success: true,
                                     type: "broadcast",
                                     message:
-                                        params !== "force"
-                                            ? `<@${userId}> started playback.`
+                                        params[0] !== "force"
+                                            ? `<@${userId}> resumed playback.`
                                             : `<@${userId}> forced the next track.`
                                 });
                             } else {
@@ -124,13 +126,13 @@ All commands must be DM'd to me.
                     resolve({
                         success: false,
                         type: "message",
-                        message: "Already playing, use `play force` to force"
+                        message: "Already playing, use `resume force` to force"
                     });
                 }
             });
         },
 
-        stop(slackBot: SlackBot, params: string, userId: string): Promise<ICommandResponse> {
+        stop(slackBot: SlackBot, params: string[], userId: string): Promise<ICommandResponse> {
             return new Promise(function(resolve) {
                 slackBot.spotifyQueue
                     .stop()
@@ -160,7 +162,7 @@ All commands must be DM'd to me.
             });
         },
 
-        clear(slackBot: SlackBot, params: string, userId: string): Promise<ICommandResponse> {
+        clear(slackBot: SlackBot, params: string[], userId: string): Promise<ICommandResponse> {
             return new Promise(function(resolve) {
                 slackBot.spotifyQueue.clearQueue();
                 resolve({
@@ -171,7 +173,7 @@ All commands must be DM'd to me.
             });
         },
 
-        status(slackBot: SlackBot, params: string, userId: string): Promise<ICommandResponse> {
+        status(slackBot: SlackBot, params: string[], userId: string): Promise<ICommandResponse> {
             return new Promise(function(resolve) {
                 const queueString = slackBot.spotifyQueue.getStatusString();
                 resolve({
@@ -182,10 +184,10 @@ All commands must be DM'd to me.
             });
         },
 
-        skip(slackBot: SlackBot, params: string, userId: string): Promise<ICommandResponse> {
+        skip(slackBot: SlackBot, params: string[], userId: string): Promise<ICommandResponse> {
             return new Promise(function(resolve) {
                 if (slackBot.spotifyQueue.isActive()) {
-                    let skipGroup = params === "group" || params === "album" || params === "playlist";
+                    let skipGroup = params[0] === "group" || params[0] === "album" || params[0] === "playlist";
                     if (skipGroup) {
                         if (!slackBot.spotifyQueue.getCurrentGroupName()) {
                             skipGroup = false;
@@ -257,7 +259,7 @@ All commands must be DM'd to me.
             });
         },
 
-        showdevices(slackBot: SlackBot, params: string, userId: string): Promise<ICommandResponse> {
+        showdevices(slackBot: SlackBot, params: string[], userId: string): Promise<ICommandResponse> {
             return new Promise(function(resolve) {
                 slackBot.spotifyQueue
                     .getDevicesString()
@@ -279,10 +281,10 @@ All commands must be DM'd to me.
             });
         },
 
-        setdevice(slackBot: SlackBot, params: string, userId: string): Promise<ICommandResponse> {
+        setdevice(slackBot: SlackBot, params: string[], userId: string): Promise<ICommandResponse> {
             return new Promise(function(resolve) {
                 slackBot.spotifyQueue
-                    .setDeviceId(params)
+                    .setDeviceId(params[0])
                     .then(function(response) {
                         if (response.success) {
                             resolve({
@@ -325,7 +327,7 @@ All commands must be DM'd to me.
         this.rtmClient.start();
     }
 
-    private processCommand(userId: string, command: string, params: string): Promise<ICommandResponse> {
+    private processCommand(userId: string, command: string, params: string[]): Promise<ICommandResponse> {
         const slackBot = this;
         if (slackBot.commands.hasOwnProperty(command)) {
             return slackBot.commands[command](slackBot, params, userId);
@@ -359,12 +361,9 @@ All commands must be DM'd to me.
         if (event.text) {
             const message = event.text;
             if (isDM(event.channel)) {
-                console.log(message);
-                const spaceIndex = message.indexOf(" ");
-                const hasParams = spaceIndex !== -1;
-                const command = hasParams ? message.substring(0, spaceIndex) : message;
-                const params = hasParams ? message.substring(spaceIndex + 1) : "";
-
+                const components: string[] = message.split(" ");
+                const command = components[0];
+                const params = components.slice(1, components.length);
                 this.processCommand(event.user, command, params)
                     .then(function(response) {
                         slackBot.handleResponse(event, response);
