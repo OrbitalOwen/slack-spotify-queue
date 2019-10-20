@@ -60,6 +60,13 @@ All commands must be DM'd to me.
                 const resourceString = params[0];
                 const limit = params[1] ? +params[1] : null;
                 const resource = identifySpotifyResource(resourceString);
+                if (limit !== null && Number.isNaN(limit)) {
+                    resolve({
+                        success: false,
+                        type: "message",
+                        message: "Limit is not a number."
+                    });
+                }
                 if (resource) {
                     slackBot.spotifyQueue
                         .addResourceToQueue(resource, userId, limit)
