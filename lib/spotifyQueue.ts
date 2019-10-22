@@ -202,8 +202,10 @@ export default class SpotifyQueue {
                                 .catch(function(error) {
                                     reject(error);
                                 });
+                            return;
                         }
                     }
+                    resolve(addResult);
                 })
                 .catch(function(error) {
                     reject(error);
@@ -453,7 +455,7 @@ export default class SpotifyQueue {
                             const tracks = response.body.tracks.items;
                             const limit = trackLimit ? trackLimit : +DEFAULT_TRACK_LIMIT;
                             const tracksAdded = Math.min(limit, tracks.length);
-                            spotifyQueue.addSeveralTracksToQueue(tracks, userId, albumName, trackLimit);
+                            spotifyQueue.addSeveralTracksToQueue(tracks, userId, albumName, limit);
                             resolve({
                                 success: true,
                                 message: `${tracksAdded} tracks from album ${albumName}`
@@ -493,7 +495,7 @@ export default class SpotifyQueue {
                             });
                             const limit = trackLimit ? trackLimit : +DEFAULT_TRACK_LIMIT;
                             const tracksAdded = Math.min(limit, tracks.length);
-                            spotifyQueue.addSeveralTracksToQueue(tracks, userId, playlistName, trackLimit);
+                            spotifyQueue.addSeveralTracksToQueue(tracks, userId, playlistName, limit);
                             resolve({
                                 success: true,
                                 message: `${tracksAdded} tracks from playlist ${playlistName}`
@@ -597,7 +599,7 @@ export default class SpotifyQueue {
         tracks: SpotifyApi.TrackObjectSimplified[],
         userId: string,
         groupName: string,
-        trackLimit?: number
+        trackLimit: number
     ): void {
         const spotifyQueue: SpotifyQueue = this;
         for (let i = 0; i < Math.min(tracks.length, trackLimit); i++) {

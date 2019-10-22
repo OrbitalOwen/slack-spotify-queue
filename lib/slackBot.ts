@@ -93,6 +93,12 @@ All commands must be DM'd to me.
                                 message: `Unspecified error with request.`
                             });
                         });
+                } else {
+                    resolve({
+                        success: false,
+                        type: "message",
+                        message: "Invalid resource."
+                    });
                 }
             });
         },
