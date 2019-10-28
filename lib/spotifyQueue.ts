@@ -250,7 +250,9 @@ export default class SpotifyQueue {
                                         `playing ${track.name} will finish in ${track.duration_ms} miliseconds`
                                     );
 
-                                    const newGroup = spotifyQueue.currentTrack ? track.groupName !== spotifyQueue.currentTrack.groupName : false;
+                                    const newGroup = spotifyQueue.currentTrack
+                                        ? track.groupName !== spotifyQueue.currentTrack.groupName
+                                        : true;
 
                                     if (newGroup) {
                                         spotifyQueue.currentGroupNumber += 1;
