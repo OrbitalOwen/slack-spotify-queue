@@ -4,7 +4,8 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "tsc && node index.js"
+        "start": "tsc && node index.js",
+        "postinstall": "patch-package"
     },
     "author": "OrbitalOwen",
     "license": "MIT",
@@ -15,9 +16,10 @@
         "@types/spotify-web-api-node": "^4.0.1",
         "express": "^4.17.1",
         "open": "^6.4.0",
+        "patch-package": "^6.2.0",
         "request": "^2.88.0",
         "seratch-slack-types": "^0.3.6",
-        "spotify-web-api-node": "https://github.com/OrbitalOwen/spotify-web-api-node/tarball/300946a304bcc168e9d0d75ab237c94d8e3daa3e",
+        "spotify-web-api-node": "^4.0.0",
         "typescript": "^3.6.3"
     },
     "devDependencies": {

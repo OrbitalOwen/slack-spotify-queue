@@ -1,0 +1,14 @@
+diff --git a/node_modules/spotify-web-api-node/src/spotify-web-api.js b/node_modules/spotify-web-api-node/src/spotify-web-api.js
+index b79a5f1..3ada5c2 100644
+--- a/node_modules/spotify-web-api-node/src/spotify-web-api.js
++++ b/node_modules/spotify-web-api-node/src/spotify-web-api.js
+@@ -1206,7 +1206,8 @@ SpotifyWebApi.prototype = {
+     return WebApiRequest.builder(this.getAccessToken())
+       .withPath('/v1/me/player/repeat')
+       .withQueryParameters({
+-        state: options.state || 'off'
++        state: options.state || 'off',
++        device_id: options.device_id || null
+       })
+       .build()
+       .execute(HttpManager.put, callback);
