@@ -24,14 +24,14 @@ export default class SkipVoter {
             return false;
         }
         if (currentTrackNumber !== this.trackVoteNumber) {
-            this.resetTrackVotes(currentTrackNumber)
+            this.resetTrackVotes(currentTrackNumber);
         }
         return !this.trackVotes.includes(slackUserId);
     }
 
     public registerTrackVote(slackUserId: string): boolean {
         const currentPlayNumber = this.spotifyQueue.getCurrentTrackNumber();
-        console.log(`Track skip vote by ${slackUserId}. Track Number: ${currentPlayNumber}`)
+        console.log(`Track skip vote by ${slackUserId}. Track Number: ${currentPlayNumber}`);
         if (currentPlayNumber !== this.trackVoteNumber) {
             this.resetTrackVotes(currentPlayNumber);
         }
@@ -48,14 +48,14 @@ export default class SkipVoter {
             return false;
         }
         if (currentGroupNumber !== this.groupVoteNumber) {
-            this.resetGroupVotes(currentGroupNumber)
+            this.resetGroupVotes(currentGroupNumber);
         }
         return !this.groupVotes.includes(slackUserId);
     }
 
     public registerGroupVote(slackUserId: string): boolean {
         const currentGroupNumber = this.spotifyQueue.getCurrentGroupNumber();
-        console.log(`Group skip vote by ${slackUserId}. Group Number: ${currentGroupNumber}`)
+        console.log(`Group skip vote by ${slackUserId}. Group Number: ${currentGroupNumber}`);
         if (currentGroupNumber !== this.groupVoteNumber) {
             this.resetGroupVotes(currentGroupNumber);
         }

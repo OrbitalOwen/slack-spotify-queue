@@ -178,7 +178,6 @@ export default class SpotifyQueue {
 
     public addResourceToQueue(resource: IResource, userId: string, trackLimit?: number): Promise<ICommandResult> {
         const spotifyQueue: SpotifyQueue = this;
-        spotifyQueue.currentGroupNumber += 1;
         return new Promise(function(resolve, reject) {
             const addPromise =
                 resource.type === "track"
@@ -250,6 +249,12 @@ export default class SpotifyQueue {
                                     console.log(
                                         `playing ${track.name} will finish in ${track.duration_ms} miliseconds`
                                     );
+
+                                    const newGroup = spotifyQueue.currentTrack ? track.groupName !== spotifyQueue.currentTrack.groupName : false;
+
+                                    if (newGroup) {
+                                        spotifyQueue.currentGroupNumber += 1;
+                                    }
 
                                     spotifyQueue.queue = spotifyQueue.queue.slice(1, spotifyQueue.queue.length);
                                     spotifyQueue.currentTrackNumber = spotifyQueue.currentTrackNumber + 1;
