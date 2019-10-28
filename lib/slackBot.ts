@@ -322,6 +322,29 @@ All commands must be DM'd to me.
                         });
                     });
             });
+        },
+
+        search(slackBot: SlackBot, params: string[], userId: string): Promise<ICommandResponse> {
+            return new Promise(function(resolve) {
+                const query = params.join(" ");
+                slackBot.spotifyQueue
+                    .searchForItem(query)
+                    .then(function(response) {
+                        resolve({
+                            success: true,
+                            type: "message",
+                            message: response.message
+                        });
+                    })
+                    .catch(function(error) {
+                        console.error(error);
+                        resolve({
+                            success: false,
+                            type: "message",
+                            message: `Unspecified error with request.`
+                        });
+                    });
+            });
         }
     };
 

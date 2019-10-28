@@ -37,7 +37,7 @@ function getCurrentTime(): number {
     return new Date().getTime() / 1000;
 }
 
-function getObjectName(objectInfo: SpotifyApi.SingleAlbumResponse | SpotifyApi.TrackObjectSimplified): string {
+function getObjectName(objectInfo: SpotifyApi.TrackObjectSimplified | SpotifyApi.AlbumObjectSimplified): string {
     let nameString;
     let artistsString;
     if (objectInfo.name) {
@@ -47,7 +47,8 @@ function getObjectName(objectInfo: SpotifyApi.SingleAlbumResponse | SpotifyApi.T
     }
     if (objectInfo.artists) {
         artistsString = "";
-        for (const artistObject of objectInfo.artists) {
+        for (let i = 0; i < Math.min(objectInfo.artists.length, 3); i++) {
+            const artistObject = objectInfo.artists[i];
             const artistName = artistObject.name ? artistObject.name : "Unknown";
             if (artistsString !== "") {
                 artistsString = artistsString + ", " + artistName;
@@ -347,7 +348,7 @@ export default class SpotifyQueue {
                             const devices = response.body.devices;
                             let devicesString = "Devices:";
                             for (const device of devices) {
-                                devicesString = `${devicesString}\n*${device.name}*: ${device.id}`;
+                                devicesString = `${devicesString}\n*${device.name}*: \`${device.id}\``;
                             }
                             resolve({
                                 success: true,
@@ -367,6 +368,45 @@ export default class SpotifyQueue {
                     resolve({
                         success: false,
                         message: "Could not authenticate with Spotify"
+                    });
+                });
+        });
+    }
+
+    public searchForItem(query: string): Promise<ICommandResult> {
+        const spotifyQueue: SpotifyQueue = this;
+        return new Promise(function(resolve) {
+            spotifyApi
+                .search(query, ["album", "playlist", "track"], { limit: 5 })
+                .then(function(response) {
+                    let outputString = `Results for \`${query}\`\n\n*Tracks*:`;
+                    response.body.tracks.items.forEach(function(object) {
+                        const name = getObjectName(object);
+                        const id = object.id;
+                        outputString += `\n${name}: \`spotify:track:${id}\``;
+                    });
+                    outputString += "\n\n*Albums*:";
+                    response.body.albums.items.forEach(function(object) {
+                        const name = getObjectName(object);
+                        const id = object.id;
+                        outputString += `\n${name}: \`spotify:album:${id}\``;
+                    });
+                    outputString += "\n\n*Playlists*:";
+                    response.body.playlists.items.forEach(function(object) {
+                        const name = object.name;
+                        const id = object.id;
+                        outputString += `\n${name}: \`spotify:playlist:${id}\``;
+                    });
+                    resolve({
+                        success: true,
+                        message: outputString
+                    });
+                })
+                .catch(function(error) {
+                    console.error(error);
+                    resolve({
+                        success: false,
+                        message: "Search request failed"
                     });
                 });
         });
