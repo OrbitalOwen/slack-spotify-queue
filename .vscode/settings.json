@@ -1,7 +1,9 @@
 {
     "eslint.enable": true,
     "files.exclude": {
-        // "**/*.js": true,
+        "**/*.js": true,
         "**/*.js.map": true
-    }
+    },
+    "prettier.printWidth": 120,
+    "prettier.tabWidth": 4
 }

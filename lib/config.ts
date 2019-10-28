@@ -7,8 +7,9 @@ interface IConfig {
     SPOTIFY_CLIENT_ID: string;
     SPOTIFY_CLIENT_SECRET: string;
     SLACK_BOT_TOKEN: string;
-    SKIP_THRESHOLD: string;
-    AUTH_PORT: string;
+    SKIP_THRESHOLD: number;
+    AUTH_PORT: number;
+    DEFAULT_TRACK_LIMIT: number;
     SPOTIFY_ACCESS_TOKEN?: string;
     SPOTIFY_REFRESH_TOKEN?: string;
 }
@@ -24,13 +25,13 @@ class Config {
         this.data = JSON.parse(fs.readFileSync(configDirectory).toString());
     }
 
-    public get(key: string): string | null {
+    public get(key: string): any {
         if (this.data.hasOwnProperty(key)) {
             return this.data[key];
         }
     }
 
-    public write(key: string, value: string | null): Promise<any> {
+    public write(key: string, value: any): Promise<any> {
         const config = this;
         return new Promise(function(resolve, reject) {
             config.data[key] = value;
