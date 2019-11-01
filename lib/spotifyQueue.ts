@@ -379,24 +379,35 @@ export default class SpotifyQueue {
             spotifyApi
                 .search(query, ["album", "playlist", "track"], { limit: 3 })
                 .then(function(response) {
-                    let outputString = `Results for \`${query}\`\n\n*Tracks*:`;
-                    response.body.tracks.items.forEach(function(object) {
-                        const name = getObjectName(object);
-                        const id = object.id;
-                        outputString += `\n${name}: \`spotify:track:${id}\``;
-                    });
-                    outputString += "\n\n*Albums*:";
-                    response.body.albums.items.forEach(function(object) {
-                        const name = getObjectName(object);
-                        const id = object.id;
-                        outputString += `\n${name}: \`spotify:album:${id}\``;
-                    });
-                    outputString += "\n\n*Playlists*:";
-                    response.body.playlists.items.forEach(function(object) {
-                        const name = object.name;
-                        const id = object.id;
-                        outputString += `\n${name}: \`spotify:playlist:${id}\``;
-                    });
+                    const tracks = response.body.tracks.items;
+                    const albums = response.body.albums.items;
+                    const playlists = response.body.playlists.items;
+
+                    let outputString = `Results for \`${query}\`:\n`;
+                    if (tracks.length > 0) {
+                        outputString += "\n*Tracks:*";
+                        for (const object of response.body.tracks.items) {
+                            const name = getObjectName(object);
+                            const id = object.id;
+                            outputString += `\n- ${name}: \`spotify:track:${id}\``;
+                        }
+                    }
+                    if (albums.length > 0) {
+                        outputString += "\n*Albums:*";
+                        for (const object of response.body.albums.items) {
+                            const name = getObjectName(object);
+                            const id = object.id;
+                            outputString += `\n- ${name}: \`spotify:album:${id}\``;
+                        }
+                    }
+                    if (playlists.length > 0) {
+                        outputString += "\n*Playlists:*";
+                        for (const object of response.body.playlists.items) {
+                            const name = object.name;
+                            const id = object.id;
+                            outputString += `\n- ${name}: \`spotify:playlist:${id}\``;
+                        }
+                    }
                     resolve({
                         success: true,
                         message: outputString
