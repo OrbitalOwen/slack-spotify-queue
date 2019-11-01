@@ -377,7 +377,7 @@ export default class SpotifyQueue {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve) {
             spotifyApi
-                .search(query, ["album", "playlist", "track"], { limit: 5 })
+                .search(query, ["album", "playlist", "track"], { limit: 3 })
                 .then(function(response) {
                     let outputString = `Results for \`${query}\`\n\n*Tracks*:`;
                     response.body.tracks.items.forEach(function(object) {
