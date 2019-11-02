@@ -5,18 +5,24 @@ import { SpotifyQueue, ISearchResult } from "./spotifyQueue";
 import SkipVoter from "./skipVoter";
 import identifySpotifyResource from "./identifySpotifyResource";
 import config from "./config";
-import { rejects } from "assert";
 
 const SLACK_BOT_TOKEN = config.get("SLACK_BOT_TOKEN");
 const SKIP_THRESHOLD = config.get("SKIP_THRESHOLD");
 const BROADCAST_CHANNEL = config.get("BROADCAST_CHANNEL");
-
 const SEARCH_RESULT_EMOJIS = ["one", "two", "three", "four", "five", "six"];
+const SEARCH_RESULT_LIFETIME = 12 * 60 * 60 * 1000;
 
 interface ICommandResponse {
     success: boolean;
     type?: "broadcast" | "message";
     message?: string;
+}
+
+interface IActiveSearch {
+    results: ISearchResult[];
+    channel: string;
+    userId: string;
+    messageTs: string;
 }
 
 function isDM(channelId: string): boolean {
@@ -43,8 +49,7 @@ export default class SlackBot {
     private skipVoter: SkipVoter;
     private rtmClient: RTMClient;
     private webClient: WebClient;
-    private searchResults?: ISearchResult[];
-    private searchResultsMessageTs?: string;
+    private activeSearches: IActiveSearch[];
 
     private commands = {
         help(slackBot: SlackBot): Promise<ICommandResponse> {
@@ -54,6 +59,7 @@ export default class SlackBot {
                     type: "message",
                     message: `
 All commands must be DM'd to me.
+\`search <query>\` - Search for a track or album with the given name. React to the result to add it to the queue.
 \`add <URL/URI> <optional limit>\` - Adds a track, album or playlist using a Spotify URL or URI. If the resource is an album or playlist, the optional command limit specifies how many tracks to add.
 \`resume <optional force>\` - Resumes playback from the next track in the queue
 \`stop\` - Stops playback
@@ -347,12 +353,20 @@ All commands must be DM'd to me.
         search(slackBot: SlackBot, params: string[], userId: string, channel: string): Promise<ICommandResponse> {
             return new Promise(function(resolve) {
                 const query = params.join(" ");
+                if (query === "") {
+                    resolve({
+                        success: false,
+                        type: "message",
+                        message: "No search query given"
+                    });
+                    return;
+                }
                 slackBot.spotifyQueue
                     .searchForItem(query)
                     .then(function(response) {
                         if (response.success) {
                             slackBot
-                                .handleSearchResults(query, response.searchResults, channel)
+                                .handleSearchResults(query, response.searchResults, channel, userId)
                                 .then(function() {
                                     resolve({
                                         success: true
@@ -390,9 +404,15 @@ All commands must be DM'd to me.
         this.skipVoter = new SkipVoter(spotifyQueue, SKIP_THRESHOLD);
         this.rtmClient = new RTMClient(SLACK_BOT_TOKEN);
         this.webClient = new WebClient(SLACK_BOT_TOKEN);
+        this.activeSearches = [];
     }
 
-    private handleSearchResults(query: string, searchResults: ISearchResult[], channel: string): Promise<null> {
+    private handleSearchResults(
+        query: string,
+        searchResults: ISearchResult[],
+        channel: string,
+        userId: string
+    ): Promise<null> {
         const slackBot = this;
         return new Promise(function(resolve, reject) {
             const resultsString = generateSearchResultString(query, searchResults);
@@ -404,8 +424,20 @@ All commands must be DM'd to me.
                 })
                 .then(function(response) {
                     if (response.ts) {
-                        slackBot.searchResults = searchResults;
-                        slackBot.searchResultsMessageTs = response.ts;
+                        const activeSearch: IActiveSearch = {
+                            results: searchResults,
+                            channel,
+                            userId,
+                            messageTs: response.ts
+                        };
+                        slackBot.activeSearches.push(activeSearch);
+
+                        // Remove after a while
+                        setTimeout(function() {
+                            const index = slackBot.activeSearches.indexOf(activeSearch);
+                            slackBot.activeSearches.splice(index, 1);
+                        }, SEARCH_RESULT_LIFETIME);
+
                         resolve();
                     } else {
                         console.error("Slack rejected search results message");
@@ -420,18 +452,25 @@ All commands must be DM'd to me.
         });
     }
 
-    private handleSearchResultReaction(emoji: string, userId: string) {
+    private handleSearchResultSelection(activeSearch: IActiveSearch, resultIndex: number) {
         const slackBot = this;
-        if (slackBot.searchResults) {
-            const resultIndex = SEARCH_RESULT_EMOJIS.indexOf(emoji);
-            if (resultIndex !== -1) {
-                const resource = slackBot.searchResults[resultIndex];
-                if (resource) {
-                    slackBot.spotifyQueue.addResourceToQueue(resource, userId).catch(function(error) {
-                        console.error(error);
-                    });
-                }
-            }
+        const resource = activeSearch.results[resultIndex];
+        if (resource) {
+            slackBot.spotifyQueue
+                .addResourceToQueue(resource, activeSearch.userId)
+                .then(function(result) {
+                    if (result.success) {
+                        slackBot.sendMessage(
+                            BROADCAST_CHANNEL,
+                            `<@${activeSearch.userId}> added ${result.message} to queue.`
+                        );
+                    } else {
+                        slackBot.sendMessage(activeSearch.channel, result.message);
+                    }
+                })
+                .catch(function(error) {
+                    console.error(error);
+                });
         }
     }
 
@@ -512,8 +551,14 @@ All commands must be DM'd to me.
     private reactionAdded(event) {
         const slackBot = this;
         if (event.item) {
-            if (event.item.ts === slackBot.searchResultsMessageTs) {
-                slackBot.handleSearchResultReaction(event.reaction, event.user);
+            const activeSearch = slackBot.activeSearches.find(function(search) {
+                return search.messageTs === event.item.ts;
+            });
+            if (activeSearch) {
+                const resultIndex = SEARCH_RESULT_EMOJIS.indexOf(event.reaction);
+                if (resultIndex !== -1) {
+                    slackBot.handleSearchResultSelection(activeSearch, resultIndex);
+                }
             }
         }
     }
