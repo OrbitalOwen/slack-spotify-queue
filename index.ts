@@ -1,5 +1,5 @@
 import SlackBot from "./lib/slackBot";
-import SpotifyQueue from "./lib/spotifyQueue";
+import { SpotifyQueue } from "./lib/spotifyQueue";
 
 const queue = new SpotifyQueue();
 const bot = new SlackBot(queue);

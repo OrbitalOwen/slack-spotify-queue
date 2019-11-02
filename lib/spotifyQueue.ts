@@ -28,9 +28,15 @@ interface ITrack {
     userId: string;
     groupName?: string;
 }
+
+export interface ISearchResult extends IResource {
+    name: string;
+}
+
 interface ICommandResult {
     success: boolean;
     message?: string;
+    searchResults?: ISearchResult[];
 }
 
 function getCurrentTime(): number {
@@ -63,7 +69,7 @@ function getObjectName(objectInfo: SpotifyApi.TrackObjectSimplified | SpotifyApi
     return `${nameString} by ${artistsString}`;
 }
 
-export default class SpotifyQueue {
+export class SpotifyQueue {
     private queue: ITrack[];
     private tokenExpirationEpoch: number;
     private active: boolean;
@@ -373,44 +379,34 @@ export default class SpotifyQueue {
         });
     }
 
+    private generateSearchResult(object: SpotifyApi.TrackObjectFull | SpotifyApi.AlbumObjectSimplified): ISearchResult {
+        return {
+            name: getObjectName(object),
+            type: object.type,
+            id: object.id
+        };
+    }
+
     public searchForItem(query: string): Promise<ICommandResult> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve) {
             spotifyApi
-                .search(query, ["album", "playlist", "track"], { limit: 3 })
+                .search(query, ["album", "track"], { limit: 3 })
                 .then(function(response) {
-                    const tracks = response.body.tracks.items;
-                    const albums = response.body.albums.items;
-                    const playlists = response.body.playlists.items;
+                    const results = [];
 
-                    let outputString = `Results for \`${query}\`:\n`;
-                    if (tracks.length > 0) {
-                        outputString += "\n*Tracks:*";
-                        for (const object of response.body.tracks.items) {
-                            const name = getObjectName(object);
-                            const id = object.id;
-                            outputString += `\n- ${name}: \`spotify:track:${id}\``;
-                        }
+                    for (const object of response.body.tracks.items) {
+                        const result = spotifyQueue.generateSearchResult(object);
+                        results.push(result);
                     }
-                    if (albums.length > 0) {
-                        outputString += "\n*Albums:*";
-                        for (const object of response.body.albums.items) {
-                            const name = getObjectName(object);
-                            const id = object.id;
-                            outputString += `\n- ${name}: \`spotify:album:${id}\``;
-                        }
+                    for (const object of response.body.albums.items) {
+                        const result = spotifyQueue.generateSearchResult(object);
+                        results.push(result);
                     }
-                    if (playlists.length > 0) {
-                        outputString += "\n*Playlists:*";
-                        for (const object of response.body.playlists.items) {
-                            const name = object.name;
-                            const id = object.id;
-                            outputString += `\n- ${name}: \`spotify:playlist:${id}\``;
-                        }
-                    }
+
                     resolve({
                         success: true,
-                        message: outputString
+                        searchResults: results
                     });
                 })
                 .catch(function(error) {

@@ -2,7 +2,7 @@ const URL_START = "https://open.spotify.com/";
 const URI_START = "spotify:";
 
 export interface IResource {
-    type: string;
+    type: "track" | "album" | "playlist";
     id: string;
 }
 

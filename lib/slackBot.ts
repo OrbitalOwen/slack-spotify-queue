@@ -1,14 +1,17 @@
 import { RTMClient } from "@slack/rtm-api";
 import { WebClient } from "@slack/web-api";
 
-import SpotifyQueue from "./spotifyQueue";
+import { SpotifyQueue, ISearchResult } from "./spotifyQueue";
 import SkipVoter from "./skipVoter";
 import identifySpotifyResource from "./identifySpotifyResource";
 import config from "./config";
+import { rejects } from "assert";
 
 const SLACK_BOT_TOKEN = config.get("SLACK_BOT_TOKEN");
 const SKIP_THRESHOLD = config.get("SKIP_THRESHOLD");
 const BROADCAST_CHANNEL = config.get("BROADCAST_CHANNEL");
+
+const SEARCH_RESULT_EMOJIS = ["one", "two", "three", "four", "five", "six"];
 
 interface ICommandResponse {
     success: boolean;
@@ -20,11 +23,28 @@ function isDM(channelId: string): boolean {
     return channelId.startsWith("D");
 }
 
+function generateSearchResultString(query: string, searchResults: ISearchResult[]): string {
+    let resultsString = `Results for \`${query}\`\nReact to add to queue`;
+    let lastType = "";
+    for (const [index, result] of searchResults.entries()) {
+        if (lastType !== result.type) {
+            const typeHeader = result.type === "track" ? "Tracks" : result.type === "album" ? "Albums" : "";
+            resultsString += `\n\n*${typeHeader}:*`;
+            lastType = result.type;
+        }
+        const emoji = SEARCH_RESULT_EMOJIS[index];
+        resultsString += `\n:${emoji}: ${result.name}`;
+    }
+    return resultsString;
+}
+
 export default class SlackBot {
     private spotifyQueue: SpotifyQueue;
     private skipVoter: SkipVoter;
     private rtmClient: RTMClient;
     private webClient: WebClient;
+    private searchResults?: ISearchResult[];
+    private searchResultsMessageTs?: string;
 
     private commands = {
         help(slackBot: SlackBot): Promise<ICommandResponse> {
@@ -324,24 +344,41 @@ All commands must be DM'd to me.
             });
         },
 
-        search(slackBot: SlackBot, params: string[], userId: string): Promise<ICommandResponse> {
+        search(slackBot: SlackBot, params: string[], userId: string, channel: string): Promise<ICommandResponse> {
             return new Promise(function(resolve) {
                 const query = params.join(" ");
                 slackBot.spotifyQueue
                     .searchForItem(query)
                     .then(function(response) {
-                        resolve({
-                            success: true,
-                            type: "message",
-                            message: response.message
-                        });
+                        if (response.success) {
+                            slackBot
+                                .handleSearchResults(query, response.searchResults, channel)
+                                .then(function() {
+                                    resolve({
+                                        success: true
+                                    });
+                                })
+                                .catch(function() {
+                                    resolve({
+                                        success: false,
+                                        type: "message",
+                                        message: "Failed to process search request"
+                                    });
+                                });
+                        } else {
+                            resolve({
+                                success: false,
+                                type: "message",
+                                message: "Search request failed"
+                            });
+                        }
                     })
                     .catch(function(error) {
                         console.error(error);
                         resolve({
                             success: false,
                             type: "message",
-                            message: `Unspecified error with request.`
+                            message: "Unspecified error with request."
                         });
                     });
             });
@@ -355,10 +392,56 @@ All commands must be DM'd to me.
         this.webClient = new WebClient(SLACK_BOT_TOKEN);
     }
 
+    private handleSearchResults(query: string, searchResults: ISearchResult[], channel: string): Promise<null> {
+        const slackBot = this;
+        return new Promise(function(resolve, reject) {
+            const resultsString = generateSearchResultString(query, searchResults);
+
+            slackBot.rtmClient
+                .addOutgoingEvent(true, "message", {
+                    text: resultsString,
+                    channel
+                })
+                .then(function(response) {
+                    if (response.ts) {
+                        slackBot.searchResults = searchResults;
+                        slackBot.searchResultsMessageTs = response.ts;
+                        resolve();
+                    } else {
+                        console.error("Slack rejected search results message");
+                        reject();
+                    }
+                })
+                .catch(function(error) {
+                    console.error("Failed to send search results message");
+                    console.error(error);
+                    reject();
+                });
+        });
+    }
+
+    private handleSearchResultReaction(emoji: string, userId: string) {
+        const slackBot = this;
+        if (slackBot.searchResults) {
+            const resultIndex = SEARCH_RESULT_EMOJIS.indexOf(emoji);
+            if (resultIndex !== -1) {
+                const resource = slackBot.searchResults[resultIndex];
+                if (resource) {
+                    slackBot.spotifyQueue.addResourceToQueue(resource, userId).catch(function(error) {
+                        console.error(error);
+                    });
+                }
+            }
+        }
+    }
+
     public listenForMessages(): void {
         const slackBot = this;
         this.rtmClient.on("message", function(event) {
             slackBot.messageRecieved(event);
+        });
+        this.rtmClient.on("reaction_added", function(event) {
+            slackBot.reactionAdded(event);
         });
         this.rtmClient.start();
         this.sendMessage(BROADCAST_CHANNEL, "Bot online. DM commands to me to begin playing.");
@@ -368,10 +451,15 @@ All commands must be DM'd to me.
         });
     }
 
-    private processCommand(userId: string, command: string, params: string[]): Promise<ICommandResponse> {
+    private processCommand(
+        userId: string,
+        channel: string,
+        command: string,
+        params: string[]
+    ): Promise<ICommandResponse> {
         const slackBot = this;
         if (slackBot.commands.hasOwnProperty(command)) {
-            return slackBot.commands[command](slackBot, params, userId);
+            return slackBot.commands[command](slackBot, params, userId, channel);
         }
         return Promise.resolve({
             type: "message",
@@ -410,13 +498,22 @@ All commands must be DM'd to me.
                 const components: string[] = message.split(" ");
                 const command = components[0];
                 const params = components.slice(1, components.length);
-                this.processCommand(event.user, command, params)
+                this.processCommand(event.user, event.channel, command, params)
                     .then(function(response) {
                         slackBot.handleResponse(event, response);
                     })
                     .catch(function(error) {
                         console.error("Command error " + error);
                     });
+            }
+        }
+    }
+
+    private reactionAdded(event) {
+        const slackBot = this;
+        if (event.item) {
+            if (event.item.ts === slackBot.searchResultsMessageTs) {
+                slackBot.handleSearchResultReaction(event.reaction, event.user);
             }
         }
     }

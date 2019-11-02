@@ -1,4 +1,4 @@
-import SpotifyQueue from "./spotifyQueue";
+import { SpotifyQueue } from "./spotifyQueue";
 
 export default class SkipVoter {
     private spotifyQueue: SpotifyQueue;
