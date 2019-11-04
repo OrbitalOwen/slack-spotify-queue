@@ -77,6 +77,7 @@ export class SpotifyQueue {
     private currentGroupNumber: number;
     private currentTrack: ITrack;
     private deviceId: string;
+    private volume: number;
 
     constructor() {
         this.queue = [];
@@ -84,6 +85,7 @@ export class SpotifyQueue {
         this.currentGroupNumber = 0;
         this.tokenExpirationEpoch = 0;
         this.active = false;
+        this.volume = 100;
     }
 
     public isActive() {
@@ -242,15 +244,9 @@ export class SpotifyQueue {
                     return findDevicePromise
                         .then(function() {
                             return spotifyApi
-                                .setRepeat({
-                                    state: "off",
+                                .play({
+                                    uris: [track.uri],
                                     device_id: spotifyQueue.deviceId
-                                })
-                                .then(function() {
-                                    return spotifyApi.play({
-                                        uris: [track.uri],
-                                        device_id: spotifyQueue.deviceId
-                                    });
                                 })
                                 .then(function() {
                                     console.log(
@@ -436,9 +432,28 @@ export class SpotifyQueue {
                             });
                             if (deviceValid) {
                                 spotifyQueue.deviceId = deviceId;
-                                resolve({
-                                    success: true
-                                });
+                                spotifyApi
+                                    .setRepeat({
+                                        state: "off",
+                                        device_id: spotifyQueue.deviceId
+                                    })
+                                    .then(function() {
+                                        return spotifyApi.setVolume(spotifyQueue.volume, {
+                                            device_id: spotifyQueue.deviceId
+                                        });
+                                    })
+                                    .then(function() {
+                                        resolve({
+                                            success: true
+                                        });
+                                    })
+                                    .catch(function(error) {
+                                        console.error(error);
+                                        resolve({
+                                            success: false,
+                                            message: "Unable to configure new device"
+                                        });
+                                    });
                             } else {
                                 resolve({
                                     success: false,
@@ -451,6 +466,50 @@ export class SpotifyQueue {
                             resolve({
                                 success: false,
                                 message: "Could not load devices from Spotify"
+                            });
+                        });
+                })
+                .catch(function(error) {
+                    console.error(error);
+                    resolve({
+                        success: false,
+                        message: "Could not authenticate with Spotify"
+                    });
+                });
+        });
+    }
+
+    public setVolume(percentDelta: number, userId: string): Promise<ICommandResult> {
+        const spotifyQueue = this;
+        return new Promise(function(resolve) {
+            const newVolume = Math.max(Math.min(spotifyQueue.volume + percentDelta, 100), 0);
+            const directionText = percentDelta > 0 ? "up" : "down";
+            spotifyQueue.volume = newVolume;
+            if (!spotifyQueue.deviceId) {
+                resolve({
+                    success: true,
+                    message: `<@${userId}> turned the volume ${directionText} to ${newVolume}%`
+                });
+                return;
+            }
+            spotifyQueue
+                .refreshTokenIfRequired()
+                .then(function() {
+                    return spotifyApi
+                        .setVolume(newVolume, {
+                            device_id: spotifyQueue.deviceId
+                        })
+                        .then(function() {
+                            resolve({
+                                success: true,
+                                message: `<@${userId}> turned the volume ${directionText} to ${newVolume}%`
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error(error);
+                            resolve({
+                                success: false,
+                                message: "Failed to set volume"
                             });
                         });
                 })
@@ -727,7 +786,23 @@ export class SpotifyQueue {
                     }
                     if (activeDevice) {
                         spotifyQueue.deviceId = activeDevice.id;
-                        resolve();
+                        spotifyApi
+                            .setRepeat({
+                                state: "off",
+                                device_id: spotifyQueue.deviceId
+                            })
+                            .then(function() {
+                                return spotifyApi.setVolume(spotifyQueue.volume, {
+                                    device_id: spotifyQueue.deviceId
+                                });
+                            })
+                            .then(function() {
+                                resolve();
+                            })
+                            .catch(function(error) {
+                                console.error(error);
+                                reject();
+                            });
                     } else {
                         reject();
                     }

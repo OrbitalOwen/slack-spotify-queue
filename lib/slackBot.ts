@@ -11,6 +11,7 @@ const SKIP_THRESHOLD = config.get("SKIP_THRESHOLD");
 const BROADCAST_CHANNEL = config.get("BROADCAST_CHANNEL");
 const SEARCH_RESULT_EMOJIS = ["one", "two", "three", "four", "five", "six"];
 const SEARCH_RESULT_LIFETIME = 12 * 60 * 60 * 1000;
+const VOLUME_DELTA = 20;
 
 interface ICommandResponse {
     success: boolean;
@@ -66,6 +67,7 @@ All commands must be DM'd to me.
 \`clear\` - Clears the queue
 \`status\` - Display the currently playing track and the first ten tracks in the queue
 \`skip <optional album/group/playlist>\` - Vote to skip the current track, ${SKIP_THRESHOLD} vote(s) are required. If the optional album/group/playlist (interchangeable) argument is given, votes to skip the current album / playlist.
+\`volume <up/down>\` - Turn volume up or down
 \`showdevices\` - Show currently available device ids
 \`setdevice\` - Set device id to play from
 `
@@ -395,6 +397,37 @@ All commands must be DM'd to me.
                             message: "Unspecified error with request."
                         });
                     });
+            });
+        },
+
+        volume(slackBot: SlackBot, params: string[], userId: string, channel: string): Promise<ICommandResponse> {
+            return new Promise(function(resolve) {
+                const volumeDelta = params[0] === "up" ? VOLUME_DELTA : params[0] === "down" ? -VOLUME_DELTA : null;
+                if (volumeDelta) {
+                    slackBot.spotifyQueue
+                        .setVolume(volumeDelta, userId)
+                        .then(function(response) {
+                            resolve({
+                                success: true,
+                                type: "broadcast",
+                                message: response.message
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error(error);
+                            resolve({
+                                success: false,
+                                type: "message",
+                                message: "Unspecified error with request."
+                            });
+                        });
+                } else {
+                    resolve({
+                        success: false,
+                        type: "message",
+                        message: "Must specify volume up or volume down"
+                    });
+                }
             });
         }
     };
