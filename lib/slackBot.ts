@@ -6,12 +6,13 @@ import SkipVoter from "./skipVoter";
 import identifySpotifyResource from "./identifySpotifyResource";
 import config from "./config";
 
-const SLACK_BOT_TOKEN = config.get("SLACK_BOT_TOKEN");
-const SKIP_THRESHOLD = config.get("SKIP_THRESHOLD");
-const BROADCAST_CHANNEL = config.get("BROADCAST_CHANNEL");
-const SEARCH_RESULT_EMOJIS = ["one", "two", "three", "four", "five", "six"];
-const SEARCH_RESULT_LIFETIME = 12 * 60 * 60 * 1000;
-const VOLUME_DELTA = 20;
+const configValues = config.get();
+const SLACK_BOT_TOKEN = configValues.SLACK_BOT_TOKEN;
+const SKIP_THRESHOLD = configValues.SKIP_THRESHOLD;
+const BROADCAST_CHANNEL = configValues.BROADCAST_CHANNEL;
+const OPTION_EMOJIS = configValues.OPTION_EMOJIS;
+const SEARCH_RESULT_LIFETIME = configValues.SEARCH_RESULTS_LIFETIME;
+const VOLUME_DELTA = configValues.VOLUME_DELTA;
 
 interface ICommandResponse {
     success: boolean;
@@ -39,7 +40,7 @@ function generateSearchResultString(query: string, searchResults: ISearchResult[
             resultsString += `\n\n*${typeHeader}:*`;
             lastType = result.type;
         }
-        const emoji = SEARCH_RESULT_EMOJIS[index];
+        const emoji = OPTION_EMOJIS[index];
         resultsString += `\n:${emoji}: ${result.name}`;
     }
     return resultsString;
@@ -588,7 +589,7 @@ All commands must be DM'd to me.
                 return search.messageTs === event.item.ts;
             });
             if (activeSearch) {
-                const resultIndex = SEARCH_RESULT_EMOJIS.indexOf(event.reaction);
+                const resultIndex = OPTION_EMOJIS.indexOf(event.reaction);
                 if (resultIndex !== -1) {
                     slackBot.handleSearchResultSelection(activeSearch, resultIndex);
                 }

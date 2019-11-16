@@ -5,12 +5,13 @@ import { IResource } from "./identifySpotifyResource";
 
 import config from "./config";
 
-const SPOTIFY_ACCESS_TOKEN = config.get("SPOTIFY_ACCESS_TOKEN");
-const SPOTIFY_REFRESH_TOKEN = config.get("SPOTIFY_REFRESH_TOKEN");
-const AUTH_PORT = config.get("AUTH_PORT");
-const SPOTIFY_CLIENT_ID = config.get("SPOTIFY_CLIENT_ID");
-const SPOTIFY_CLIENT_SECRET = config.get("SPOTIFY_CLIENT_SECRET");
-const DEFAULT_TRACK_LIMIT = config.get("DEFAULT_TRACK_LIMIT");
+const configValues = config.get();
+const SPOTIFY_ACCESS_TOKEN = configValues.SPOTIFY_ACCESS_TOKEN;
+const SPOTIFY_REFRESH_TOKEN = configValues.SPOTIFY_REFRESH_TOKEN;
+const AUTH_PORT = configValues.AUTH_PORT;
+const SPOTIFY_CLIENT_ID = configValues.SPOTIFY_CLIENT_ID;
+const SPOTIFY_CLIENT_SECRET = configValues.SPOTIFY_CLIENT_SECRET;
+const DEFAULT_TRACK_LIMIT = configValues.DEFAULT_TRACK_LIMIT;
 
 const scopes = ["user-read-playback-state", "user-read-currently-playing", "user-modify-playback-state"];
 
@@ -427,6 +428,7 @@ export class SpotifyQueue {
     }
 
     public setDeviceId(deviceId: string): Promise<ICommandResult> {
+        // TODO: Use emoji selection like we do with search results
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve, reject) {
             spotifyQueue
