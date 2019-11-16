@@ -386,30 +386,41 @@ export class SpotifyQueue {
     public searchForItem(query: string): Promise<ICommandResult> {
         const spotifyQueue: SpotifyQueue = this;
         return new Promise(function(resolve) {
-            spotifyApi
-                .search(query, ["album", "track"], { limit: 3 })
-                .then(function(response) {
-                    const results = [];
+            spotifyQueue
+                .refreshTokenIfRequired()
+                .then(function() {
+                    return spotifyApi
+                        .search(query, ["album", "track"], { limit: 3 })
+                        .then(function(response) {
+                            const results = [];
 
-                    for (const object of response.body.tracks.items) {
-                        const result = spotifyQueue.generateSearchResult(object);
-                        results.push(result);
-                    }
-                    for (const object of response.body.albums.items) {
-                        const result = spotifyQueue.generateSearchResult(object);
-                        results.push(result);
-                    }
+                            for (const object of response.body.tracks.items) {
+                                const result = spotifyQueue.generateSearchResult(object);
+                                results.push(result);
+                            }
+                            for (const object of response.body.albums.items) {
+                                const result = spotifyQueue.generateSearchResult(object);
+                                results.push(result);
+                            }
 
-                    resolve({
-                        success: true,
-                        searchResults: results
-                    });
+                            resolve({
+                                success: true,
+                                searchResults: results
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error(error);
+                            resolve({
+                                success: false,
+                                message: "Search request failed"
+                            });
+                        });
                 })
                 .catch(function(error) {
                     console.error(error);
                     resolve({
                         success: false,
-                        message: "Search request failed"
+                        message: "Could not authenticate with Spotify"
                     });
                 });
         });
