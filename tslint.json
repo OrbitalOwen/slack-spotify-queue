@@ -8,7 +8,10 @@
         "no-console": false,
         "object-literal-sort-keys": false,
         "trailing-comma": false,
-        "member-ordering": false
+        "member-ordering": false,
+        "no-var-requires": false,
+        "no-floating-promises": true,
+        "no-empty": [true, "allow-empty-functions"]
     },
     "rulesDirectory": []
 }

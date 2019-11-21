@@ -15,7 +15,8 @@ const configTemplate = {
     SEARCH_RESULTS_LIFETIME: 43200000,
     OPTION_EMOJIS: ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
     SPOTIFY_ACCESS_TOKEN: null,
-    SPOTIFY_REFRESH_TOKEN: null
+    SPOTIFY_REFRESH_TOKEN: null,
+    SEARCH_LIMIT: 3
 };
 
 interface IConfig {
@@ -31,9 +32,10 @@ interface IConfig {
     OPTION_EMOJIS: string[];
     SPOTIFY_ACCESS_TOKEN: string | null;
     SPOTIFY_REFRESH_TOKEN: string | null;
+    SEARCH_LIMIT: number;
 }
 
-class Config {
+export default class Config {
     private data: IConfig;
 
     constructor() {
@@ -49,7 +51,7 @@ class Config {
         return this.data;
     }
 
-    public write(key: string, value: any): Promise<any> {
+    public write(key: string, value: any): Promise<void> {
         const config = this;
         return new Promise(function(resolve, reject) {
             config.data[key] = value;
@@ -63,5 +65,3 @@ class Config {
         });
     }
 }
-
-export default new Config();
