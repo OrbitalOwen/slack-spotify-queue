@@ -1,11 +1,12 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import openUrl from "open";
 import { mocked } from "ts-jest/utils";
-import Config from "./config";
+import { Config } from "./config";
 import getSpotifyObjectName from "./getSpotifyObjectName";
-import Spotify from "./spotify";
+import { Spotify } from "./spotify";
 
 jest.mock("./config");
+jest.mock("./getSpotifyObjectName");
 jest.mock("spotify-web-api-node");
 jest.mock("open");
 
@@ -14,6 +15,7 @@ jest.useFakeTimers();
 const mockedSpotifyWebApi = mocked(SpotifyWebApi, true);
 const mockedConfig = mocked(Config, true);
 const mockedOpenUrl = mocked(openUrl, true);
+const mockedGetObjectName = mocked(getSpotifyObjectName, true);
 
 function getArtist(name: string): SpotifyApi.ArtistObjectSimplified {
     return {
@@ -28,11 +30,11 @@ function getArtist(name: string): SpotifyApi.ArtistObjectSimplified {
     };
 }
 
-function getTrack(name: string, id: string): SpotifyApi.TrackObjectSimplified {
+function getTrack(name: string, id: string, uri?: string, durationMs?: number): SpotifyApi.TrackObjectSimplified {
     return {
         artists: [],
         disc_number: 1,
-        duration_ms: 1,
+        duration_ms: durationMs ? durationMs : 1,
         explicit: false,
         external_urls: {
             spotify: ""
@@ -43,7 +45,7 @@ function getTrack(name: string, id: string): SpotifyApi.TrackObjectSimplified {
         preview_url: "",
         track_number: 1,
         type: "track",
-        uri: ""
+        uri: uri ? uri : ""
     };
 }
 
@@ -126,12 +128,36 @@ function setupConfigMock(accessToken: string, refreshToken: string, searchLimit:
     });
 }
 
+function mockAlbumResult(album: object) {
+    // @ts-ignore The actual response is huge, and we only want to validate it was returned
+    mockedSpotifyWebApi.prototype.getAlbum.mockResolvedValue({
+        body: album
+    });
+}
+
+function mockTrackResult(track: object) {
+    // @ts-ignore The actual response is huge, and we only want to validate it was returned
+    mockedSpotifyWebApi.prototype.getTrack.mockResolvedValue({
+        body: track
+    });
+}
+
+function mockPlaylistResult(playlist: object) {
+    // @ts-ignore The actual response is huge, and we only want to validate it was returned
+    mockedSpotifyWebApi.prototype.getPlaylist.mockResolvedValue({
+        body: playlist
+    });
+}
+
 function setupSpotifyApiMock() {
     setupConfigMock(null, null, 1);
     mockSpotifyDeviceResponse([{ id: "VALID_DEVICE_ID", is_restricted: false }]);
     mockSpotifyAuthResponse("VALID_ACCESS_TOKEN", "VALID_REFRESH_TOKEN", 1);
     mockSpotifyPlaybackResponse({ id: "track_id" }, true, 0);
     mockSearchResults([], []);
+    mockAlbumResult({ tracks: { items: [] } });
+    mockTrackResult({ id: "", duration_ms: 0 });
+    mockPlaylistResult({ name: "", tracks: { items: [] } });
     mockedSpotifyWebApi.prototype.setRepeat.mockResolvedValue(null);
     mockedSpotifyWebApi.prototype.setVolume.mockResolvedValue(null);
     mockedSpotifyWebApi.prototype.transferMyPlayback.mockResolvedValue(null);
@@ -148,7 +174,7 @@ function resultsHasTrackObject(results, trackObject) {
     return result ? true : false;
 }
 
-function validateAuthenticatesWhen(func: (spotify: any) => void) {
+function validateAuthenticatesWhen(func: (spotify: Spotify) => void) {
     test("Should refresh the access token if expired", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
@@ -171,6 +197,7 @@ function validateAuthenticatesWhen(func: (spotify: any) => void) {
 }
 
 beforeEach(() => {
+    mockedGetObjectName.mockReturnValue("RETURNED_NAME");
     mockedOpenUrl.mockResolvedValue(null);
     setupSpotifyApiMock();
 });
@@ -355,31 +382,31 @@ describe("Spotify.getPlaybackInfo()", () => {
         await spotify.getPlaybackInfo();
     });
 
-    test("Should return the correct trackId and isPlaying status", async () => {
+    test("Should return the correct trackUri and isPlaying status", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
-        mockSpotifyPlaybackResponse({ id: "track_id" }, true, null);
+        mockSpotifyPlaybackResponse({ uri: "track_uri" }, true, null);
         const playbackInfo = await spotify.getPlaybackInfo();
-        expect(playbackInfo.trackId).toBe("track_id");
+        expect(playbackInfo.trackUri).toBe("track_uri");
         expect(playbackInfo.isPlaying).toBe(true);
     });
 
-    test("Should return the correct trackId, isPlaying and progressMs values", async () => {
+    test("Should return the correct trackUri, isPlaying and progressMs values", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
-        mockSpotifyPlaybackResponse({ id: "track_id" }, true, 137);
+        mockSpotifyPlaybackResponse({ uri: "track_uri" }, true, 137);
         const playbackInfo = await spotify.getPlaybackInfo();
-        expect(playbackInfo.trackId).toBe("track_id");
+        expect(playbackInfo.trackUri).toBe("track_uri");
         expect(playbackInfo.isPlaying).toBe(true);
         expect(playbackInfo.progressMs).toBe(137);
     });
 
-    test("Should return no trackId if non track is returned", async () => {
+    test("Should return no trackUri if non track is returned", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
         mockSpotifyPlaybackResponse(null, true, 137);
         const playbackInfo = await spotify.getPlaybackInfo();
-        expect(playbackInfo.trackId).toBe(null);
+        expect(playbackInfo.trackUri).toBe(null);
     });
 });
 
@@ -435,24 +462,27 @@ describe("Spotify.search()", () => {
 
         mockSearchResults([track1, track2], [album1, album2]);
 
+        mockedGetObjectName.mockReturnValue("THE_RIGHT_NAME");
+
         const results = await spotify.search("");
+        expect(mockedGetObjectName).toBeCalledTimes(4);
         expect(
             resultsHasTrackObject(results, {
-                name: getSpotifyObjectName(track1),
+                name: "THE_RIGHT_NAME",
                 type: "track",
                 id: "track_id_1"
             })
         ).toBe(true);
         expect(
             resultsHasTrackObject(results, {
-                name: getSpotifyObjectName(track2),
+                name: "THE_RIGHT_NAME",
                 type: "track",
                 id: "track_id_2"
             })
         ).toBe(true);
         expect(
             resultsHasTrackObject(results, {
-                name: getSpotifyObjectName(album1),
+                name: "THE_RIGHT_NAME",
                 type: "album",
                 id: "album_id_1"
             })
@@ -464,5 +494,126 @@ describe("Spotify.search()", () => {
                 id: "album_id_2"
             })
         ).toBe(true);
+    });
+});
+
+describe("Spotify.getTrack()", () => {
+    validateAuthenticatesWhen(async (spotify) => {
+        await spotify.getTrack("");
+    });
+
+    test("Should request the track with the given id", async () => {
+        const config = new Config();
+        const spotify = new Spotify(config);
+        await spotify.getTrack("track_id");
+
+        expect(mockedSpotifyWebApi.prototype.getTrack).toBeCalledWith("track_id");
+    });
+
+    test("Should return a track with the correct name, id and duration", async () => {
+        const config = new Config();
+        const spotify = new Spotify(config);
+        mockTrackResult({ uri: "track_1", duration_ms: 0 });
+        mockedGetObjectName.mockReturnValue("THE_RIGHT_NAME");
+        const trackReturned = await spotify.getTrack("track_id");
+        expect(trackReturned.name).toBe("THE_RIGHT_NAME");
+        expect(trackReturned.uri).toBe("track_1");
+        expect(trackReturned.durationMs).toBe(0);
+    });
+});
+
+describe("Spotify.getAlbum()", () => {
+    validateAuthenticatesWhen(async (spotify) => {
+        await spotify.getAlbum("");
+    });
+
+    test("Should request the album with the given id", async () => {
+        const config = new Config();
+        const spotify = new Spotify(config);
+        await spotify.getAlbum("album_id");
+
+        expect(mockedSpotifyWebApi.prototype.getAlbum).toBeCalledWith("album_id");
+    });
+
+    test("Should return an album with the correct name", async () => {
+        const config = new Config();
+        const spotify = new Spotify(config);
+        const album = {
+            id: "album_id",
+            tracks: {
+                items: []
+            }
+        };
+        mockAlbumResult(album);
+        mockedGetObjectName.mockReturnValue("THE_RIGHT_NAME");
+        const albumReturned = await spotify.getAlbum("");
+        expect(albumReturned.name).toBe("THE_RIGHT_NAME");
+    });
+
+    test("Album returned should include the correct tracks", async () => {
+        const config = new Config();
+        const spotify = new Spotify(config);
+        const album = {
+            id: "album_id",
+            tracks: {
+                items: [getTrack("Track1", "track_id_1", "uri_1", 1), getTrack("Track2", "track_id_2", "uri_2", 2)]
+            }
+        };
+        mockAlbumResult(album);
+        mockedGetObjectName.mockReturnValue("THE_RIGHT_NAME");
+        const albumReturned = await spotify.getAlbum("");
+        expect(albumReturned.tracks).toEqual([
+            { name: "THE_RIGHT_NAME", uri: "uri_1", durationMs: 1 },
+            { name: "THE_RIGHT_NAME", uri: "uri_2", durationMs: 2 }
+        ]);
+    });
+});
+
+describe("Spotify.getPlaylist()", () => {
+    validateAuthenticatesWhen(async (spotify) => {
+        await spotify.getPlaylist("");
+    });
+
+    test("Should request the playlist with the given id", async () => {
+        const config = new Config();
+        const spotify = new Spotify(config);
+        await spotify.getPlaylist("playlist_id");
+
+        expect(mockedSpotifyWebApi.prototype.getPlaylist).toBeCalledWith("playlist_id");
+    });
+
+    test("Should return a playlist with the correct name", async () => {
+        const config = new Config();
+        const spotify = new Spotify(config);
+        const playlist = {
+            name: "Playlist1",
+            tracks: {
+                items: []
+            }
+        };
+        mockPlaylistResult(playlist);
+        const playlistReturned = await spotify.getPlaylist("");
+        expect(playlistReturned.name).toBe("Playlist1");
+    });
+
+    test("Playlist returned should include the correct tracks", async () => {
+        const config = new Config();
+        const spotify = new Spotify(config);
+        const playlist = {
+            name: "Playlist1",
+            tracks: {
+                items: [
+                    { track: getTrack("Track1", "track_id_1", "uri_1", 1) },
+                    { track: getTrack("Track2", "track_id_2", "uri_2", 2) }
+                ]
+            }
+        };
+        mockPlaylistResult(playlist);
+        mockedGetObjectName.mockReturnValue("THE_RIGHT_NAME");
+        const playlistReturned = await spotify.getPlaylist("");
+        expect(playlistReturned.tracks).toEqual([
+            { name: "THE_RIGHT_NAME", uri: "uri_1", durationMs: 1 },
+            { name: "THE_RIGHT_NAME", uri: "uri_2", durationMs: 2 }
+        ]);
     });
 });

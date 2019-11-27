@@ -19,7 +19,7 @@ const configTemplate = {
     SEARCH_LIMIT: 3
 };
 
-interface IConfig {
+export interface IConfig {
     SPOTIFY_CLIENT_ID: string;
     SPOTIFY_CLIENT_SECRET: string;
     SLACK_BOT_TOKEN: string;
@@ -35,7 +35,7 @@ interface IConfig {
     SEARCH_LIMIT: number;
 }
 
-export default class Config {
+export class Config {
     private data: IConfig;
 
     constructor() {

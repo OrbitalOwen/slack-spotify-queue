@@ -1,34 +1,39 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import express from "express";
 import openUrl from "open";
-import Config from "./config";
+import { Config } from "./config";
 import getSpotifyObjectName from "./getSpotifyObjectName";
 
 const SCOPES = ["user-read-playback-state", "user-read-currently-playing", "user-modify-playback-state"];
 
-interface IResponse<T> {
-    body: T;
-    headers: Record<string, string>;
-    statusCode: number;
-}
-
-interface IPlaybackInfo {
+export interface IPlaybackInfo {
     isPlaying: boolean;
     progressMs?: number;
-    trackId?: string;
+    trackUri?: string;
 }
 
-interface ISearchResult {
+export interface ISearchResult {
     name: string;
     type: "track" | "album";
     id: string;
+}
+
+export interface ITrackEntry {
+    name: string;
+    uri: string;
+    durationMs: number;
+}
+
+export interface IGroupEntry {
+    name: string;
+    tracks: ITrackEntry[];
 }
 
 function getCurrentTime(): number {
     return new Date().getTime() / 1000;
 }
 
-export default class Spotify {
+export class Spotify {
     public volume: number;
     public deviceId: string;
     private tokenExpirationEpoch: number;
@@ -47,22 +52,12 @@ export default class Spotify {
         });
     }
 
-    private refreshTokenIfRequired(): Promise<string> {
-        const spotify = this;
-        return new Promise(function(resolve, reject) {
-            if (getCurrentTime() > spotify.tokenExpirationEpoch - 300) {
-                spotify.webApi
-                    .refreshAccessToken()
-                    .then(function(data) {
-                        spotify.webApi.setAccessToken(data.body.access_token);
-                        spotify.tokenExpirationEpoch = getCurrentTime() + data.body.expires_in;
-                        resolve();
-                    })
-                    .catch(reject);
-            } else {
-                resolve();
-            }
-        });
+    private async refreshTokenIfRequired(): Promise<void> {
+        if (getCurrentTime() > this.tokenExpirationEpoch - 300) {
+            const response = await this.webApi.refreshAccessToken();
+            this.webApi.setAccessToken(response.body.access_token);
+            this.tokenExpirationEpoch = getCurrentTime() + response.body.expires_in;
+        }
     }
 
     public authorize(): Promise<void> {
@@ -74,25 +69,17 @@ export default class Spotify {
                 const expressApp = new express();
                 let expressServer;
 
-                expressApp.get("/callback", function(request, response) {
+                expressApp.get("/callback", async function(request, response) {
                     const authCode = request.query.code;
-                    spotify.webApi
-                        .authorizationCodeGrant(authCode)
-                        .then(function(data) {
-                            spotify.webApi.setAccessToken(data.body.access_token);
-                            spotify.webApi.setRefreshToken(data.body.refresh_token);
-                            spotify.tokenExpirationEpoch = getCurrentTime() + data.body.expires_in;
-                            response.send("You may now close this window.");
-                            expressServer.close();
-                            return Promise.all([
-                                spotify.config.write("SPOTIFY_ACCESS_TOKEN", data.body.access_token),
-                                spotify.config.write("SPOTIFY_REFRESH_TOKEN", data.body.refresh_token)
-                            ]);
-                        })
-                        .then(function() {
-                            resolve();
-                        })
-                        .catch(reject);
+                    const authResponse = await spotify.webApi.authorizationCodeGrant(authCode);
+                    spotify.webApi.setAccessToken(authResponse.body.access_token);
+                    spotify.webApi.setRefreshToken(authResponse.body.refresh_token);
+                    spotify.tokenExpirationEpoch = getCurrentTime() + authResponse.body.expires_in;
+                    response.send("You may now close this window.");
+                    expressServer.close();
+                    await spotify.config.write("SPOTIFY_ACCESS_TOKEN", authResponse.body.access_token);
+                    await spotify.config.write("SPOTIFY_REFRESH_TOKEN", authResponse.body.refresh_token);
+                    resolve();
                 });
 
                 expressServer = expressApp.listen(+configData.AUTH_PORT);
@@ -113,135 +100,149 @@ export default class Spotify {
         });
     }
 
-    public play(uri: string, positionMs?: number): Promise<IResponse<void>> {
-        const spotify = this;
-        return spotify.refreshTokenIfRequired().then(function() {
-            return spotify.webApi
-                .setRepeat({
-                    device_id: spotify.deviceId,
-                    state: "off"
-                })
-                .then(function() {
-                    return spotify.webApi.setVolume(spotify.volume, {
-                        device_id: spotify.deviceId
-                    });
-                })
-                .then(function() {
-                    return spotify.webApi.play({
-                        device_id: spotify.deviceId,
-                        uris: [uri],
-                        position_ms: positionMs
-                    });
-                });
+    public async play(uri: string, positionMs?: number): Promise<void> {
+        await this.refreshTokenIfRequired();
+        await this.webApi.setRepeat({
+            device_id: this.deviceId,
+            state: "off"
+        });
+        await this.webApi.setVolume(this.volume, {
+            device_id: this.deviceId
+        });
+        await this.webApi.play({
+            device_id: this.deviceId,
+            uris: [uri],
+            position_ms: positionMs
         });
     }
 
-    public pause(): Promise<IResponse<void>> {
-        const spotify = this;
-        return spotify.refreshTokenIfRequired().then(function() {
-            return spotify.webApi.pause({
-                device_id: spotify.deviceId
+    public async pause(): Promise<void> {
+        await this.refreshTokenIfRequired();
+        await this.webApi.pause({
+            device_id: this.deviceId
+        });
+    }
+
+    public async setVolume(volume: number): Promise<void> {
+        this.volume = volume;
+        await this.refreshTokenIfRequired();
+        await this.webApi.setVolume(volume, {
+            device_id: this.deviceId
+        });
+    }
+
+    public async getPlaybackInfo(): Promise<IPlaybackInfo> {
+        await this.refreshTokenIfRequired();
+        const response = await this.webApi.getMyCurrentPlayingTrack();
+        const trackUri = response.body.item ? response.body.item.uri : null;
+        return {
+            isPlaying: response.body.is_playing,
+            progressMs: response.body.progress_ms,
+            trackUri
+        };
+    }
+
+    public async setDeviceId(deviceId: string): Promise<void> {
+        await this.refreshTokenIfRequired();
+        const response = await this.webApi.getMyDevices();
+        const devices = response.body.devices;
+        const deviceValid = devices.find(function(device: SpotifyApi.UserDevice) {
+            if (device.id === deviceId && !device.is_restricted) {
+                return true;
+            }
+        });
+        if (!deviceValid) {
+            throw new Error("Device is not valid");
+        }
+        this.deviceId = deviceId;
+        await this.webApi.transferMyPlayback({
+            device_ids: [deviceId],
+            play: false
+        });
+    }
+
+    public async getAvailableDeviceIds(): Promise<string[]> {
+        await this.refreshTokenIfRequired();
+        const response = await this.webApi.getMyDevices();
+        const devices = response.body.devices;
+        return devices
+            .filter(function(device) {
+                return !device.is_restricted;
+            })
+            .map(function(device) {
+                return device.id;
             });
-        });
     }
 
-    public setVolume(volume: number): Promise<IResponse<void>> {
-        const spotify = this;
-        spotify.volume = volume;
-        return spotify.refreshTokenIfRequired().then(function() {
-            return spotify.webApi.setVolume(volume, {
-                device_id: spotify.deviceId
-            });
+    public async search(query: string): Promise<ISearchResult[]> {
+        await this.refreshTokenIfRequired();
+        const configData = this.config.get();
+        const response = await this.webApi.search(query, ["album", "track"], { limit: configData.SEARCH_LIMIT });
+        const trackResults = response.body.tracks.items.map(function(object): ISearchResult {
+            return {
+                name: getSpotifyObjectName(object),
+                type: "track",
+                id: object.id
+            };
         });
+        const albumResults = response.body.albums.items.map(function(object): ISearchResult {
+            return {
+                name: getSpotifyObjectName(object),
+                type: "album",
+                id: object.id
+            };
+        });
+        const results = trackResults.concat(albumResults);
+        return results;
     }
 
-    public getPlaybackInfo(): Promise<IPlaybackInfo> {
-        const spotify = this;
-        return new Promise(function(resolve, reject) {
-            spotify
-                .refreshTokenIfRequired()
-                .then(function() {
-                    return spotify.webApi.getMyCurrentPlayingTrack().then(function(response) {
-                        const trackId = response.body.item ? response.body.item.id : null;
-                        resolve({
-                            isPlaying: response.body.is_playing,
-                            progressMs: response.body.progress_ms,
-                            trackId
-                        });
-                    });
-                })
-                .catch(reject);
-        });
+    private getTrackEntry(track: SpotifyApi.TrackObjectSimplified): ITrackEntry {
+        const name = getSpotifyObjectName(track);
+        const uri = track.uri;
+        const durationMs = track.duration_ms;
+        return {
+            name,
+            uri,
+            durationMs
+        };
     }
 
-    public setDeviceId(deviceId: string): Promise<IResponse<void>> {
-        const spotify = this;
-        return spotify.refreshTokenIfRequired().then(function() {
-            return spotify.webApi.getMyDevices().then(function(response) {
-                const devices = response.body.devices;
-                const deviceValid = devices.find(function(device: SpotifyApi.UserDevice) {
-                    if (device.id === deviceId && !device.is_restricted) {
-                        return true;
-                    }
-                });
-                if (!deviceValid) {
-                    throw new Error("Device is not valid");
-                }
-                spotify.deviceId = deviceId;
-                return spotify.webApi.transferMyPlayback({
-                    device_ids: [deviceId],
-                    play: false
-                });
-            });
-        });
+    public async getTrack(id: string): Promise<ITrackEntry> {
+        await this.refreshTokenIfRequired();
+        const response = await this.webApi.getTrack(id);
+        const trackObject = response.body;
+        return this.getTrackEntry(trackObject);
     }
 
-    public getAvailableDeviceIds(): Promise<string[]> {
-        const spotify = this;
-        return spotify.refreshTokenIfRequired().then(function() {
-            return spotify.webApi.getMyDevices().then(function(response) {
-                const devices = response.body.devices;
-                return devices
-                    .filter(function(device) {
-                        return !device.is_restricted;
-                    })
-                    .map(function(device) {
-                        return device.id;
-                    });
-            });
-        });
+    public async getAlbum(id: string): Promise<IGroupEntry> {
+        await this.refreshTokenIfRequired();
+        const response = await this.webApi.getAlbum(id);
+        const albumObject = response.body;
+        const name = getSpotifyObjectName(albumObject);
+        const tracks = [];
+        for (const trackObject of albumObject.tracks.items) {
+            const track = this.getTrackEntry(trackObject);
+            tracks.push(track);
+        }
+        return {
+            name,
+            tracks
+        };
     }
 
-    public search(query: string): Promise<ISearchResult[]> {
-        const spotify = this;
-        return new Promise(function(resolve, reject) {
-            spotify
-                .refreshTokenIfRequired()
-                .then(function() {
-                    const configData = spotify.config.get();
-                    return spotify.webApi.search(query, ["album", "track"], { limit: configData.SEARCH_LIMIT });
-                })
-                .then(function(response) {
-                    const trackResults = response.body.tracks.items.map(function(object): ISearchResult {
-                        return {
-                            name: getSpotifyObjectName(object),
-                            type: "track",
-                            id: object.id
-                        };
-                    });
-
-                    const albumResults = response.body.albums.items.map(function(object): ISearchResult {
-                        return {
-                            name: getSpotifyObjectName(object),
-                            type: "album",
-                            id: object.id
-                        };
-                    });
-
-                    const results = trackResults.concat(albumResults);
-                    resolve(results);
-                })
-                .catch(reject);
-        });
+    public async getPlaylist(id: string): Promise<IGroupEntry> {
+        await this.refreshTokenIfRequired();
+        const response = await this.webApi.getPlaylist(id);
+        const playlistObject = response.body;
+        const name = playlistObject.name;
+        const tracks = [];
+        for (const playlistTrackObject of playlistObject.tracks.items) {
+            const track = this.getTrackEntry(playlistTrackObject.track);
+            tracks.push(track);
+        }
+        return {
+            name,
+            tracks
+        };
     }
 }

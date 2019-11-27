@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { mocked } from "ts-jest/utils";
-import Config from "./Config";
+import { Config } from "./Config";
 
 jest.mock("fs");
 const mockedFs = mocked(fs, false);
