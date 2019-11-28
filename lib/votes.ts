@@ -1,5 +1,6 @@
 import { Config } from "./config";
 import { Queue, IQueueEntry } from "./queue";
+import cloneDeep from "lodash.clonedeep";
 
 interface IVote {
     queueId: number;
@@ -15,6 +16,7 @@ export class Votes {
     constructor(config: Config, queue: Queue) {
         this.threshold = config.get().SKIP_THRESHOLD;
         this.queue = queue;
+        this.votes = [];
     }
 
     public canVoteOnTrack(userId: string, queueId: number): boolean {
@@ -38,14 +40,14 @@ export class Votes {
                 this.votes.push(vote);
             }
             if (!vote.usersFor.includes(userId)) {
-                vote.passed = true;
-                votesParticipated.push(Object.assign({}, vote));
                 vote.usersFor.push(userId);
                 if (vote.usersFor.length >= this.threshold) {
+                    vote.passed = true;
                     idsToRemove.push(vote.queueId);
                     const index = this.votes.indexOf(vote);
-                    this.votes.splice(index, index);
+                    this.votes.splice(index, 1);
                 }
+                votesParticipated.push(cloneDeep(vote));
             }
         }
         if (idsToRemove.length !== 0) {

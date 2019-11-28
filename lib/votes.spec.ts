@@ -3,6 +3,7 @@ import { Config } from "./config";
 import { Queue } from "./queue";
 import { Spotify } from "./spotify";
 import { mocked } from "ts-jest/utils";
+import { AssertionError } from "assert";
 
 jest.mock("./config");
 jest.mock("./queue");
@@ -30,28 +31,139 @@ afterEach(() => {
 });
 
 describe("Votes.new()", () => {
-    test.todo("Should read the threshold from the given config");
+    test("Should read the threshold from the given config", () => {
+        const votes = makeVotes();
+        expect((votes as any).threshold).toBe(3);
+    });
 });
 
 describe("Votes.canVoteOnTrack()", () => {
-    test.todo("Should return true if no vote exists yet");
-    test.todo("If a vote exists, should only return true if the user has not already voted");
+    test("Should return true if no vote exists yet", () => {
+        const votes = makeVotes();
+        const canVote = votes.canVoteOnTrack("user_id", 1);
+        expect(canVote).toBe(true);
+    });
+
+    test("If a vote exists, should only return true if the user has not already voted", () => {
+        const votes = makeVotes();
+        (votes as any).votes = [{ queueId: 1, usersFor: [] }];
+        expect(votes.canVoteOnTrack("user_id", 1)).toBe(true);
+        (votes as any).votes = [{ queueId: 1, usersFor: ["user_id"] }];
+        expect(votes.canVoteOnTrack("user_id", 1)).toBe(false);
+    });
 });
 
 describe("Votes.voteOnTracks()", () => {
-    test.todo("Should return an array of votes participated in");
-    test.todo("Should use existing votes where possible");
-    test.todo("Should not allow a user to vote on a track twice");
-    test.todo("Should register a passing vote as passed");
-    test.todo("Should remove a vote from the registry once passed");
-    test.todo("Should call queue.removeTracks with any passing votes");
+    test("Should return an array of votes participated in", async () => {
+        const votes = makeVotes();
+        (votes as any).votes = [{ queueId: 1, usersFor: [] }];
+        const votesParticipated = await votes.voteOnTracks("user_id", [1, 2]);
+        expect(votesParticipated).toEqual([
+            { queueId: 1, usersFor: ["user_id"] },
+            { queueId: 2, usersFor: ["user_id"] }
+        ]);
+    });
+
+    test("Should register a passing vote as passed", async () => {
+        const votes = makeVotes();
+        (votes as any).threshold = 1;
+        let votesParticipated = await votes.voteOnTracks("user_id", [1]);
+        expect(votesParticipated[0].passed).toBe(true);
+        (votes as any).threshold = 3;
+        (votes as any).votes = [{ queueId: 1, usersFor: ["bob", "sarah"] }];
+        votesParticipated = await votes.voteOnTracks("user_id", [1]);
+        expect(votesParticipated[0].passed).toBe(true);
+    });
+
+    test("Should not allow a user to vote on a track twice", async () => {
+        const votes = makeVotes();
+        (votes as any).votes = [{ queueId: 1, usersFor: ["user_id"] }];
+        const votesParticipated = await votes.voteOnTracks("user_id", [1]);
+        expect(votesParticipated.length).toBe(0);
+        expect((votes as any).votes).toEqual([{ queueId: 1, usersFor: ["user_id"] }]);
+    });
+
+    test("Should remove a vote from the registry once passed", async () => {
+        const votes = makeVotes();
+        (votes as any).votes = [{ queueId: 1, usersFor: ["bob", "sarah"] }];
+        await votes.voteOnTracks("user_id", [1]);
+        expect((votes as any).votes.length).toBe(0);
+    });
+
+    test("Should call queue.removeTracks with any passing votes", async () => {
+        const votes = makeVotes();
+        (votes as any).votes = [
+            { queueId: 1, usersFor: ["bob", "sarah"] },
+            { queueId: 2, usersFor: ["bob", "sarah"] }
+        ];
+        await votes.voteOnTracks("user_id", [1, 2]);
+        expect(mockedQueue.prototype.removeTracks).toHaveBeenCalledWith([1, 2]);
+    });
 });
 
 describe("Votes.canVoteOnGroup()", () => {
-    test.todo("Should return true if canVoteOnTrack returns true for any track in the group");
+    test("Should return true if canVoteOnTrack returns true for any track in the group", () => {
+        const votes = makeVotes();
+        mockedQueue.prototype.getQueue.mockReturnValue([
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1 },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 1 }
+        ]);
+        (votes as any).votes = [{ queueId: 1, usersFor: ["user_id"] }];
+        const canVote = votes.canVoteOnGroup("user_id", 1);
+        expect(canVote).toBe(true);
+    });
+
+    test("Should return false if canVoteOnTrack does not return true for any track in the group", () => {
+        const votes = makeVotes();
+        mockedQueue.prototype.getQueue.mockReturnValue([
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1 },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 2 },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 3, groupId: 2 }
+        ]);
+        (votes as any).votes = [{ queueId: 1, usersFor: ["user_id"] }];
+        const canVote = votes.canVoteOnGroup("user_id", 1);
+        expect(canVote).toBe(false);
+    });
+
+    test("Should also check the current entry", () => {
+        const votes = makeVotes();
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue({
+            name: "",
+            uri: "",
+            durationMs: 0,
+            creatorId: "",
+            queueId: 1,
+            groupId: 1
+        });
+        const canVote = votes.canVoteOnGroup("user_id", 1);
+        expect(canVote).toBe(true);
+    });
 });
 
 describe("Votes.voteOnGroup()", () => {
-    test.todo("Should call voteOnTracks with all tracks in the group");
-    test.todo("Should return the value voteOnTracks returns");
+    test("Should call voteOnTracks with all tracks in the group", async () => {
+        const votes = makeVotes();
+        mockedQueue.prototype.getQueue.mockReturnValue([
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1 },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 1 },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 3, groupId: 2 }
+        ]);
+        const voteOnTrackSpy = jest.spyOn(votes, "voteOnTracks");
+        await votes.voteOnGroup("user_id", 1);
+        expect(voteOnTrackSpy).toHaveBeenCalledWith("user_id", [1, 2]);
+    });
+
+    test("Should return the vote results", async () => {
+        const votes = makeVotes();
+        mockedQueue.prototype.getQueue.mockReturnValue([
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1 },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 1 },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 3, groupId: 2 }
+        ]);
+        const results = await votes.voteOnGroup("user_id", 1);
+        expect(results).toEqual([
+            { queueId: 1, usersFor: ["user_id"] },
+            { queueId: 2, usersFor: ["user_id"] }
+        ]);
+    });
 });
