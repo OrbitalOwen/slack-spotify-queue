@@ -22,6 +22,7 @@ export interface ITrackEntry {
     name: string;
     uri: string;
     durationMs: number;
+    isPlayable: boolean;
 }
 
 export interface IGroupEntry {
@@ -72,13 +73,17 @@ export class Spotify {
                 expressApp.get("/callback", async function(request, response) {
                     const authCode = request.query.code;
                     const authResponse = await spotify.webApi.authorizationCodeGrant(authCode);
+
                     spotify.webApi.setAccessToken(authResponse.body.access_token);
                     spotify.webApi.setRefreshToken(authResponse.body.refresh_token);
                     spotify.tokenExpirationEpoch = getCurrentTime() + authResponse.body.expires_in;
+
                     response.send("You may now close this window.");
                     expressServer.close();
+
                     await spotify.config.write("SPOTIFY_ACCESS_TOKEN", authResponse.body.access_token);
                     await spotify.config.write("SPOTIFY_REFRESH_TOKEN", authResponse.body.refresh_token);
+
                     resolve();
                 });
 
@@ -200,29 +205,33 @@ export class Spotify {
         const name = getSpotifyObjectName(track);
         const uri = track.uri;
         const durationMs = track.duration_ms;
+        const isPlayable = track.is_playable;
         return {
             name,
             uri,
-            durationMs
+            durationMs,
+            isPlayable
         };
     }
 
     public async getTrack(id: string): Promise<ITrackEntry> {
         await this.refreshTokenIfRequired();
-        const response = await this.webApi.getTrack(id);
+        const response = await this.webApi.getTrack(id, { market: "from_token" });
         const trackObject = response.body;
         return this.getTrackEntry(trackObject);
     }
 
     public async getAlbum(id: string): Promise<IGroupEntry> {
         await this.refreshTokenIfRequired();
-        const response = await this.webApi.getAlbum(id);
+        const response = await this.webApi.getAlbum(id, { market: "from_token" });
         const albumObject = response.body;
         const name = getSpotifyObjectName(albumObject);
         const tracks = [];
         for (const trackObject of albumObject.tracks.items) {
             const track = this.getTrackEntry(trackObject);
-            tracks.push(track);
+            if (track.isPlayable) {
+                tracks.push(track);
+            }
         }
         return {
             name,
@@ -232,13 +241,15 @@ export class Spotify {
 
     public async getPlaylist(id: string): Promise<IGroupEntry> {
         await this.refreshTokenIfRequired();
-        const response = await this.webApi.getPlaylist(id);
+        const response = await this.webApi.getPlaylist(id, { market: "from_token" });
         const playlistObject = response.body;
         const name = playlistObject.name;
         const tracks = [];
         for (const playlistTrackObject of playlistObject.tracks.items) {
             const track = this.getTrackEntry(playlistTrackObject.track);
-            tracks.push(track);
+            if (track.isPlayable) {
+                tracks.push(track);
+            }
         }
         return {
             name,

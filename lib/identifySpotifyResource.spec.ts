@@ -1,4 +1,4 @@
-import identifySpotifyResource from "./identifySpotifyResource";
+import { identifySpotifyResource } from "./identifySpotifyResource";
 
 test("Should identify URL resources correctly", () => {
     expect(identifySpotifyResource("open.spotify.com/track/1234")).toEqual({

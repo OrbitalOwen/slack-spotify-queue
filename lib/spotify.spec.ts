@@ -30,7 +30,13 @@ function getArtist(name: string): SpotifyApi.ArtistObjectSimplified {
     };
 }
 
-function getTrack(name: string, id: string, uri?: string, durationMs?: number): SpotifyApi.TrackObjectSimplified {
+function getTrack(
+    name: string,
+    id: string,
+    uri?: string,
+    durationMs?: number,
+    isPlayable?: boolean
+): SpotifyApi.TrackObjectSimplified {
     return {
         artists: [],
         disc_number: 1,
@@ -45,7 +51,8 @@ function getTrack(name: string, id: string, uri?: string, durationMs?: number): 
         preview_url: "",
         track_number: 1,
         type: "track",
-        uri: uri ? uri : ""
+        uri: uri ? uri : "",
+        is_playable: isPlayable ? isPlayable : true
     };
 }
 
@@ -502,12 +509,14 @@ describe("Spotify.getTrack()", () => {
         await spotify.getTrack("");
     });
 
-    test("Should request the track with the given id", async () => {
+    test("Should request the track with the given id and correct market parameter", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
         await spotify.getTrack("track_id");
 
-        expect(mockedSpotifyWebApi.prototype.getTrack).toBeCalledWith("track_id");
+        expect(mockedSpotifyWebApi.prototype.getTrack).toBeCalled();
+        expect(mockedSpotifyWebApi.prototype.getTrack.mock.calls[0][0]).toBe("track_id");
+        expect(mockedSpotifyWebApi.prototype.getTrack.mock.calls[0][1]).toEqual({ market: "from_token" });
     });
 
     test("Should return a track with the correct name, id and duration", async () => {
@@ -527,12 +536,14 @@ describe("Spotify.getAlbum()", () => {
         await spotify.getAlbum("");
     });
 
-    test("Should request the album with the given id", async () => {
+    test("Should request the album with the given id and correct market parameter", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
         await spotify.getAlbum("album_id");
 
-        expect(mockedSpotifyWebApi.prototype.getAlbum).toBeCalledWith("album_id");
+        expect(mockedSpotifyWebApi.prototype.getAlbum).toBeCalled();
+        expect(mockedSpotifyWebApi.prototype.getAlbum.mock.calls[0][0]).toBe("album_id");
+        expect(mockedSpotifyWebApi.prototype.getAlbum.mock.calls[0][1]).toEqual({ market: "from_token" });
     });
 
     test("Should return an album with the correct name", async () => {
@@ -563,8 +574,8 @@ describe("Spotify.getAlbum()", () => {
         mockedGetObjectName.mockReturnValue("THE_RIGHT_NAME");
         const albumReturned = await spotify.getAlbum("");
         expect(albumReturned.tracks).toEqual([
-            { name: "THE_RIGHT_NAME", uri: "uri_1", durationMs: 1 },
-            { name: "THE_RIGHT_NAME", uri: "uri_2", durationMs: 2 }
+            { name: "THE_RIGHT_NAME", uri: "uri_1", durationMs: 1, isPlayable: true },
+            { name: "THE_RIGHT_NAME", uri: "uri_2", durationMs: 2, isPlayable: true }
         ]);
     });
 });
@@ -579,7 +590,9 @@ describe("Spotify.getPlaylist()", () => {
         const spotify = new Spotify(config);
         await spotify.getPlaylist("playlist_id");
 
-        expect(mockedSpotifyWebApi.prototype.getPlaylist).toBeCalledWith("playlist_id");
+        expect(mockedSpotifyWebApi.prototype.getPlaylist).toBeCalled();
+        expect(mockedSpotifyWebApi.prototype.getPlaylist.mock.calls[0][0]).toBe("playlist_id");
+        expect(mockedSpotifyWebApi.prototype.getPlaylist.mock.calls[0][1]).toEqual({ market: "from_token" });
     });
 
     test("Should return a playlist with the correct name", async () => {
@@ -612,8 +625,8 @@ describe("Spotify.getPlaylist()", () => {
         mockedGetObjectName.mockReturnValue("THE_RIGHT_NAME");
         const playlistReturned = await spotify.getPlaylist("");
         expect(playlistReturned.tracks).toEqual([
-            { name: "THE_RIGHT_NAME", uri: "uri_1", durationMs: 1 },
-            { name: "THE_RIGHT_NAME", uri: "uri_2", durationMs: 2 }
+            { name: "THE_RIGHT_NAME", uri: "uri_1", durationMs: 1, isPlayable: true },
+            { name: "THE_RIGHT_NAME", uri: "uri_2", durationMs: 2, isPlayable: true }
         ]);
     });
 });

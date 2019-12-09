@@ -20,7 +20,7 @@ function removeSlackTags(input: string): string {
     return input;
 }
 
-function identifySpotifyResource(rawInputString: string): IResource | undefined {
+export function identifySpotifyResource(rawInputString: string): IResource | undefined {
     let inputString = rawInputString.trim();
 
     inputString = removeSlackTags(inputString);
@@ -47,5 +47,3 @@ function identifySpotifyResource(rawInputString: string): IResource | undefined 
         }
     }
 }
-
-export default identifySpotifyResource;

@@ -14,7 +14,8 @@ function mockSpotify() {
     mockedSpotify.prototype.getTrack.mockResolvedValue({
         name: "track_name",
         uri: "track_uri",
-        durationMs: 0
+        durationMs: 0,
+        isPlayable: true
     });
     mockedSpotify.prototype.pause.mockResolvedValue();
     mockedSpotify.prototype.play.mockResolvedValue();
@@ -57,7 +58,8 @@ async function addTrack(queue: Queue, name: string, id: string, uri: string, cre
     mockedSpotify.prototype.getTrack.mockResolvedValue({
         name,
         uri,
-        durationMs
+        durationMs,
+        isPlayable: true
     });
     const resource: IResource = {
         type: "track",
@@ -95,7 +97,8 @@ describe("Queue.add()", () => {
                 durationMs: 0,
                 creatorId: "creator_id",
                 queueId: 1,
-                groupId: 1
+                groupId: 1,
+                isPlayable: true
             }
         ]);
     });
@@ -122,12 +125,14 @@ describe("Queue.add()", () => {
                 {
                     name: "track_name_1",
                     uri: "track_uri_1",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 },
                 {
                     name: "track_name_2",
                     uri: "track_uri_2",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 }
             ]
         });
@@ -144,7 +149,8 @@ describe("Queue.add()", () => {
             durationMs: 1,
             creatorId: "creator_id",
             groupId: 1,
-            queueId: 1
+            queueId: 1,
+            isPlayable: true
         });
         expect(currentQueue[1]).toEqual({
             name: "track_name_2",
@@ -152,7 +158,8 @@ describe("Queue.add()", () => {
             durationMs: 1,
             creatorId: "creator_id",
             groupId: 1,
-            queueId: 2
+            queueId: 2,
+            isPlayable: true
         });
     });
 
@@ -164,12 +171,14 @@ describe("Queue.add()", () => {
                 {
                     name: "track_name_1",
                     uri: "track_uri_1",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 },
                 {
                     name: "track_name_2",
                     uri: "track_uri_2",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 }
             ]
         });
@@ -186,7 +195,8 @@ describe("Queue.add()", () => {
             durationMs: 1,
             creatorId: "creator_id",
             groupId: 1,
-            queueId: 1
+            queueId: 1,
+            isPlayable: true
         });
         expect(currentQueue[1]).toEqual({
             name: "track_name_2",
@@ -194,7 +204,8 @@ describe("Queue.add()", () => {
             durationMs: 1,
             creatorId: "creator_id",
             groupId: 1,
-            queueId: 2
+            queueId: 2,
+            isPlayable: true
         });
     });
 
@@ -206,12 +217,14 @@ describe("Queue.add()", () => {
                 {
                     name: "track_name_1",
                     uri: "track_uri_1",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 },
                 {
                     name: "track_name_2",
                     uri: "track_uri_2",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 }
             ]
         });
@@ -232,12 +245,14 @@ describe("Queue.add()", () => {
                 {
                     name: "track_name_1",
                     uri: "track_uri_1",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 },
                 {
                     name: "track_name_2",
                     uri: "track_uri_2",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 }
             ]
         });
@@ -257,6 +272,7 @@ describe("Queue.add()", () => {
         expect(addResponse).toEqual({
             name: "track_name",
             creatorId: "creator_id",
+            type: "track",
             groupId: 1,
             tracks: 1
         });
@@ -270,16 +286,17 @@ describe("Queue.add()", () => {
                 {
                     name: "track_name_1",
                     uri: "track_uri_1",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 },
                 {
                     name: "track_name_2",
                     uri: "track_uri_2",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 }
             ]
         });
-        mockConfig({ DEFAULT_TRACK_LIMIT: 1 });
         const resource: IResource = {
             type: "playlist",
             id: "id_1"
@@ -288,6 +305,7 @@ describe("Queue.add()", () => {
         expect(addResponse).toEqual({
             name: "playlist_name",
             creatorId: "creator_id",
+            type: "playlist",
             groupId: 1,
             tracks: 2
         });
@@ -301,12 +319,14 @@ describe("Queue.add()", () => {
                 {
                     name: "track_name_1",
                     uri: "track_uri_1",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 },
                 {
                     name: "track_name_2",
                     uri: "track_uri_2",
-                    durationMs: 1
+                    durationMs: 1,
+                    isPlayable: true
                 }
             ]
         });
@@ -318,8 +338,88 @@ describe("Queue.add()", () => {
         expect(addResponse).toEqual({
             name: "album_name",
             creatorId: "creator_id",
+            type: "album",
             groupId: 1,
             tracks: 2
+        });
+    });
+
+    test("Should not add unplayable album entries", async () => {
+        const queue = makeQueue();
+        mockedSpotify.prototype.getAlbum.mockResolvedValue({
+            name: "album_name",
+            tracks: [
+                {
+                    name: "track_name_1",
+                    uri: "track_uri_1",
+                    durationMs: 1,
+                    isPlayable: false
+                }
+            ]
+        });
+        const resource: IResource = {
+            type: "album",
+            id: "id_1"
+        };
+        const addResponse = await queue.add(resource, "creator_id");
+        expect(queue.getQueue().length).toBe(0);
+        expect(addResponse).toEqual({
+            name: "album_name",
+            creatorId: "creator_id",
+            type: "album",
+            groupId: 1,
+            tracks: 0
+        });
+    });
+
+    test("Should not add unplayable playlist entries", async () => {
+        const queue = makeQueue();
+        mockedSpotify.prototype.getPlaylist.mockResolvedValue({
+            name: "playlist_name",
+            tracks: [
+                {
+                    name: "track_name_1",
+                    uri: "track_uri_1",
+                    durationMs: 1,
+                    isPlayable: false
+                }
+            ]
+        });
+        const resource: IResource = {
+            type: "playlist",
+            id: "id_1"
+        };
+        const addResponse = await queue.add(resource, "creator_id");
+        expect(queue.getQueue().length).toBe(0);
+        expect(addResponse).toEqual({
+            name: "playlist_name",
+            creatorId: "creator_id",
+            type: "playlist",
+            groupId: 1,
+            tracks: 0
+        });
+    });
+
+    test("Should not add unplayable track entries", async () => {
+        const queue = makeQueue();
+        mockedSpotify.prototype.getTrack.mockResolvedValue({
+            name: "track_name",
+            uri: "track_uri",
+            durationMs: 1,
+            isPlayable: false
+        });
+        const resource: IResource = {
+            type: "track",
+            id: "id_1"
+        };
+        const addResponse = await queue.add(resource, "creator_id");
+        expect(queue.getQueue().length).toBe(0);
+        expect(addResponse).toEqual({
+            name: "track_name",
+            creatorId: "creator_id",
+            type: "track",
+            groupId: 1,
+            tracks: 0
         });
     });
 });
@@ -396,7 +496,8 @@ describe("Queue.nextTrack()", () => {
             creatorId: "creator_id",
             durationMs: 0,
             queueId: 1,
-            groupId: 1
+            groupId: 1,
+            isPlayable: true
         });
     });
 
@@ -588,6 +689,14 @@ describe("Queue.removeTracks()", () => {
         const nextTrackSpy = jest.spyOn(queue, "nextTrack");
         await queue.removeTracks([2]);
         expect(nextTrackSpy).toHaveBeenCalled();
+    });
+});
+
+describe("Queue.stop()", () => {
+    test("Should pause spotify", async () => {
+        const queue = makeQueue();
+        await queue.stop();
+        expect(mockedSpotify.prototype.pause).toHaveBeenCalled();
     });
 });
 

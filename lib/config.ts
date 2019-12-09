@@ -3,22 +3,6 @@ import path from "path";
 
 const configDirectory = path.join(__dirname, "..", "config.json");
 
-const configTemplate = {
-    SPOTIFY_CLIENT_ID: "",
-    SPOTIFY_CLIENT_SECRET: "",
-    SLACK_BOT_TOKEN: "",
-    SKIP_THRESHOLD: 1,
-    DEFAULT_TRACK_LIMIT: 100,
-    AUTH_PORT: 8080,
-    BROADCAST_CHANNEL: "",
-    VOLUME_DELTA: 10,
-    SEARCH_RESULTS_LIFETIME: 43200000,
-    OPTION_EMOJIS: ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
-    SPOTIFY_ACCESS_TOKEN: null,
-    SPOTIFY_REFRESH_TOKEN: null,
-    SEARCH_LIMIT: 3
-};
-
 export interface IConfig {
     SPOTIFY_CLIENT_ID: string;
     SPOTIFY_CLIENT_SECRET: string;
@@ -34,6 +18,22 @@ export interface IConfig {
     SPOTIFY_REFRESH_TOKEN: string | null;
     SEARCH_LIMIT: number;
 }
+
+export const configTemplate: IConfig = {
+    SPOTIFY_CLIENT_ID: "",
+    SPOTIFY_CLIENT_SECRET: "",
+    SLACK_BOT_TOKEN: "",
+    SKIP_THRESHOLD: 1,
+    DEFAULT_TRACK_LIMIT: 100,
+    AUTH_PORT: 8080,
+    BROADCAST_CHANNEL: "",
+    VOLUME_DELTA: 10,
+    SEARCH_RESULTS_LIFETIME: 43200000,
+    OPTION_EMOJIS: ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
+    SPOTIFY_ACCESS_TOKEN: null,
+    SPOTIFY_REFRESH_TOKEN: null,
+    SEARCH_LIMIT: 3
+};
 
 export class Config {
     private data: IConfig;

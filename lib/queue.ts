@@ -12,13 +12,14 @@ export interface IQueueEntry extends ITrackEntry {
 
 export interface IAddResponse {
     name: string;
+    type: string;
     creatorId: string;
     groupId: number;
     tracks: number;
 }
 
 export class Queue {
-    private spotify: Spotify;
+    public spotify: Spotify;
     private config: Config;
     private queue: IQueueEntry[];
     private queueId: number;
@@ -46,13 +47,24 @@ export class Queue {
         this.queue.push(queueEntry);
     }
 
-    private addGroupToQueue(groupEntry: IGroupEntry, creatorId: string, groupId: number, trackLimit?: number): void {
+    private addGroupToQueue(groupEntry: IGroupEntry, creatorId: string, groupId: number, trackLimit?: number): number {
         const defaultTrackLimit = this.config.get().DEFAULT_TRACK_LIMIT;
         const limit = trackLimit ? trackLimit : defaultTrackLimit;
-        for (let i = 0; i < Math.min(limit, groupEntry.tracks.length); i++) {
-            const trackEntry = groupEntry.tracks[i];
-            this.addTrackToQueue(trackEntry, creatorId, groupId);
+
+        const validTracks = groupEntry.tracks.filter((track) => {
+            return track.isPlayable;
+        });
+
+        let tracksAdded = 0;
+        for (let i = 0; i < Math.min(limit, validTracks.length); i++) {
+            const trackEntry = validTracks[i];
+            if (trackEntry.isPlayable) {
+                tracksAdded += 1;
+                this.addTrackToQueue(trackEntry, creatorId, groupId);
+            }
         }
+
+        return tracksAdded;
     }
 
     public async add(resource: IResource, creatorId: string, trackLimit?: number): Promise<IAddResponse> {
@@ -60,31 +72,33 @@ export class Queue {
         const groupId = this.groupId;
         if (resource.type === "track") {
             const trackEntry = await this.spotify.getTrack(resource.id);
-            this.addTrackToQueue(trackEntry, creatorId, groupId);
+            if (trackEntry.isPlayable) {
+                this.addTrackToQueue(trackEntry, creatorId, groupId);
+            }
             return {
                 name: trackEntry.name,
+                type: resource.type,
                 creatorId,
                 groupId,
-                tracks: 1
+                tracks: trackEntry.isPlayable ? 1 : 0
             };
-        } else if (resource.type === "album") {
-            const groupEntry = await this.spotify.getAlbum(resource.id);
-            this.addGroupToQueue(groupEntry, creatorId, groupId, trackLimit);
-            return {
-                name: groupEntry.name,
-                creatorId,
-                groupId,
-                tracks: trackLimit ? Math.min(groupEntry.tracks.length, trackLimit) : groupEntry.tracks.length
-            };
-        } else if (resource.type === "playlist") {
-            const groupEntry = await this.spotify.getPlaylist(resource.id);
-            this.addGroupToQueue(groupEntry, creatorId, groupId, trackLimit);
-            return {
-                name: groupEntry.name,
-                creatorId,
-                groupId,
-                tracks: trackLimit ? Math.min(groupEntry.tracks.length, trackLimit) : groupEntry.tracks.length
-            };
+        } else {
+            let groupEntry: IGroupEntry;
+            if (resource.type === "album") {
+                groupEntry = await this.spotify.getAlbum(resource.id);
+            } else if (resource.type === "playlist") {
+                groupEntry = await this.spotify.getPlaylist(resource.id);
+            }
+            if (groupEntry) {
+                const tracksAdded = this.addGroupToQueue(groupEntry, creatorId, groupId, trackLimit);
+                return {
+                    name: groupEntry.name,
+                    type: resource.type,
+                    creatorId,
+                    groupId,
+                    tracks: tracksAdded
+                };
+            }
         }
     }
 
@@ -155,6 +169,10 @@ export class Queue {
             this.currentEntry.pausedProgressMs = playbackInfo.progressMs;
         }
         this.playing = false;
+    }
+
+    public async stop(): Promise<void> {
+        await this.spotify.pause();
     }
 
     public async resume(): Promise<IQueueEntry> {

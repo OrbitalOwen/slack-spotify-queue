@@ -3,7 +3,6 @@ import { Config } from "./config";
 import { Queue } from "./queue";
 import { Spotify } from "./spotify";
 import { mocked } from "ts-jest/utils";
-import { AssertionError } from "assert";
 
 jest.mock("./config");
 jest.mock("./queue");
@@ -105,8 +104,8 @@ describe("Votes.canVoteOnGroup()", () => {
     test("Should return true if canVoteOnTrack returns true for any track in the group", () => {
         const votes = makeVotes();
         mockedQueue.prototype.getQueue.mockReturnValue([
-            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1 },
-            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 1 }
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1, isPlayable: true },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 1, isPlayable: true }
         ]);
         (votes as any).votes = [{ queueId: 1, usersFor: ["user_id"] }];
         const canVote = votes.canVoteOnGroup("user_id", 1);
@@ -116,9 +115,9 @@ describe("Votes.canVoteOnGroup()", () => {
     test("Should return false if canVoteOnTrack does not return true for any track in the group", () => {
         const votes = makeVotes();
         mockedQueue.prototype.getQueue.mockReturnValue([
-            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1 },
-            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 2 },
-            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 3, groupId: 2 }
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1, isPlayable: true },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 2, isPlayable: true },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 3, groupId: 2, isPlayable: true }
         ]);
         (votes as any).votes = [{ queueId: 1, usersFor: ["user_id"] }];
         const canVote = votes.canVoteOnGroup("user_id", 1);
@@ -133,7 +132,8 @@ describe("Votes.canVoteOnGroup()", () => {
             durationMs: 0,
             creatorId: "",
             queueId: 1,
-            groupId: 1
+            groupId: 1,
+            isPlayable: true
         });
         const canVote = votes.canVoteOnGroup("user_id", 1);
         expect(canVote).toBe(true);
@@ -144,9 +144,9 @@ describe("Votes.voteOnGroup()", () => {
     test("Should call voteOnTracks with all tracks in the group", async () => {
         const votes = makeVotes();
         mockedQueue.prototype.getQueue.mockReturnValue([
-            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1 },
-            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 1 },
-            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 3, groupId: 2 }
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1, isPlayable: true },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 1, isPlayable: true },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 3, groupId: 2, isPlayable: true }
         ]);
         const voteOnTrackSpy = jest.spyOn(votes, "voteOnTracks");
         await votes.voteOnGroup("user_id", 1);
@@ -156,9 +156,9 @@ describe("Votes.voteOnGroup()", () => {
     test("Should return the vote results", async () => {
         const votes = makeVotes();
         mockedQueue.prototype.getQueue.mockReturnValue([
-            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1 },
-            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 1 },
-            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 3, groupId: 2 }
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 1, groupId: 1, isPlayable: true },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 2, groupId: 1, isPlayable: true },
+            { name: "", uri: "", durationMs: 0, creatorId: "", queueId: 3, groupId: 2, isPlayable: true }
         ]);
         const results = await votes.voteOnGroup("user_id", 1);
         expect(results).toEqual([
