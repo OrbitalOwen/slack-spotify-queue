@@ -1,11 +1,11 @@
-import { Queue } from "./queue";
-import { Config, IConfig } from "./config";
-import { Spotify } from "./spotify";
+import { Queue } from "./Queue";
+import { Config, IConfig } from "./Config";
+import { Spotify } from "./Spotify";
 import { IResource } from "./identifySpotifyResource";
 import { mocked } from "ts-jest/utils";
 
-jest.mock("./spotify");
-jest.mock("./config");
+jest.mock("./Spotify");
+jest.mock("./Config");
 
 const mockedSpotify = mocked(Spotify, true);
 const mockedConfig = mocked(Config, true);

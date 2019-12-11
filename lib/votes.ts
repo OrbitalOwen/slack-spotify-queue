@@ -1,5 +1,7 @@
-import { Config } from "./config";
-import { Queue, IQueueEntry } from "./queue";
+// Handles votes and skipping
+
+import { Config } from "./Config";
+import { Queue, IQueueEntry } from "./Queue";
 import cloneDeep from "lodash.clonedeep";
 
 interface IVote {

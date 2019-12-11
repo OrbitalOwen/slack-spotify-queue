@@ -1,11 +1,11 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import openUrl from "open";
 import { mocked } from "ts-jest/utils";
-import { Config } from "./config";
+import { Config } from "./Config";
 import getSpotifyObjectName from "./getSpotifyObjectName";
-import { Spotify } from "./spotify";
+import { Spotify } from "./Spotify";
 
-jest.mock("./config");
+jest.mock("./Config");
 jest.mock("./getSpotifyObjectName");
 jest.mock("spotify-web-api-node");
 jest.mock("open");
@@ -417,23 +417,31 @@ describe("Spotify.getPlaybackInfo()", () => {
     });
 });
 
-describe("Spotify.getAvailableDeviceIds()", () => {
+describe("Spotify.getAvailableDevices()", () => {
     validateAuthenticatesWhen(async (spotify) => {
-        await spotify.getAvailableDeviceIds();
+        await spotify.getAvailableDevices();
     });
 
     test("Should return an array of unrestricted deviceIds", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
         mockSpotifyDeviceResponse([
-            { id: "VALID_DEVICE_ID_1", is_restricted: false },
-            { id: "VALID_DEVICE_ID_2", is_restricted: false },
-            { id: "RESTRICTED_DEVICE_ID", is_restricted: true }
+            { name: "NAME_1", id: "VALID_DEVICE_ID_1", is_restricted: false },
+            { name: "NAME_2", id: "VALID_DEVICE_ID_2", is_restricted: false },
+            { name: "NAME_3", id: "RESTRICTED_DEVICE_ID", is_restricted: true }
         ]);
-        const devices = await spotify.getAvailableDeviceIds();
-        expect(devices.includes("VALID_DEVICE_ID_1")).toBe(true);
-        expect(devices.includes("VALID_DEVICE_ID_2")).toBe(true);
-        expect(devices.includes("RESTRICTED_DEVICE_ID")).toBe(false);
+        const devices = await spotify.getAvailableDevices();
+        expect(devices.length).toBe(2);
+        expect(
+            devices.find((device) => {
+                return device.name === "NAME_1" && device.id === "VALID_DEVICE_ID_1";
+            })
+        ).toBeTruthy();
+        expect(
+            devices.find((device) => {
+                return device.name === "NAME_2" && device.id === "VALID_DEVICE_ID_2";
+            })
+        ).toBeTruthy();
     });
 });
 

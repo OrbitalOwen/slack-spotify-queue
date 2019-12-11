@@ -1,5 +1,7 @@
-import { Config } from "./config";
-import { Queue, IQueueEntry } from "./queue";
+// A safe interface for playback actions
+
+import { Config } from "./Config";
+import { Queue, IQueueEntry } from "./Queue";
 import { identifySpotifyResource } from "./identifySpotifyResource";
 
 export interface IActionResult {

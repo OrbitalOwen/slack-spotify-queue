@@ -1,13 +1,13 @@
-import { Config, configTemplate } from "./config";
-import { Queue } from "./queue";
-import { Spotify } from "./spotify";
-import { Controller } from "./controller";
+import { Config, configTemplate } from "./Config";
+import { Queue } from "./Queue";
+import { Spotify } from "./Spotify";
+import { Controller } from "./Controller";
 import { identifySpotifyResource } from "./identifySpotifyResource";
 import { mocked } from "ts-jest/utils";
 
-jest.mock("./config");
-jest.mock("./queue");
-jest.mock("./spotify");
+jest.mock("./Config");
+jest.mock("./Queue");
+jest.mock("./Spotify");
 jest.mock("./identifySpotifyResource");
 
 const mockedQueue = mocked(Queue, true);
@@ -126,6 +126,7 @@ describe("Controller.add()", () => {
     });
 
     test("If adding is not succesfull, should return a failiure message", async () => {
+        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.add.mockRejectedValue(undefined);
         const controller = makeController();
         const result = await controller.add("creator_id", "resource");
@@ -210,6 +211,7 @@ describe("Controller.play()", () => {
             durationMs: 100,
             isPlayable: true
         });
+        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.resume.mockRejectedValue(undefined);
         const result = await controller.play();
         expect(result.success).toBe(false);
@@ -228,6 +230,7 @@ describe("Controller.pause()", () => {
     test("If unable to stop spotify, should fail", async () => {
         const controller = makeController();
         mockedQueue.prototype.isPlaying.mockReturnValue(false);
+        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.stop.mockRejectedValue(undefined);
         const result = await controller.pause();
         expect(result.success).toBe(false);
@@ -244,6 +247,7 @@ describe("Controller.pause()", () => {
     test("If unable to pause the queue, should fail", async () => {
         const controller = makeController();
         mockedQueue.prototype.isPlaying.mockReturnValue(true);
+        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.pause.mockRejectedValue(undefined);
         const result = await controller.pause();
         expect(result.success).toBe(false);
@@ -281,6 +285,7 @@ describe("Controller.changeVolume()", () => {
 
     test("Should fail if not successfull", async () => {
         const controller = makeController();
+        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedSpotify.prototype.setVolume.mockRejectedValue(undefined);
         const result = await controller.changeVolume(true);
         expect(result.success).toBe(false);

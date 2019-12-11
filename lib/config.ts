@@ -1,3 +1,5 @@
+// Stores config data
+
 import fs from "fs";
 import path from "path";
 
@@ -29,7 +31,7 @@ export const configTemplate: IConfig = {
     BROADCAST_CHANNEL: "",
     VOLUME_DELTA: 10,
     SEARCH_RESULTS_LIFETIME: 43200000,
-    OPTION_EMOJIS: ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
+    OPTION_EMOJIS: ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "zero"],
     SPOTIFY_ACCESS_TOKEN: null,
     SPOTIFY_REFRESH_TOKEN: null,
     SEARCH_LIMIT: 3

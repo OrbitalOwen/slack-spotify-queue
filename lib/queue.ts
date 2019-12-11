@@ -1,5 +1,7 @@
-import { Spotify, ITrackEntry, IGroupEntry } from "./spotify";
-import { Config } from "./config";
+// Handles the queuing and playback of tracks
+
+import { Spotify, ITrackEntry, IGroupEntry } from "./Spotify";
+import { Config } from "./Config";
 import { IResource } from "./identifySpotifyResource";
 import cloneDeep from "lodash.clonedeep";
 

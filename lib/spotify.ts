@@ -1,7 +1,9 @@
+// Provides an abstraction of the SpotifyWebApi suitable for this project
+
 import SpotifyWebApi from "spotify-web-api-node";
 import express from "express";
 import openUrl from "open";
-import { Config } from "./config";
+import { Config } from "./Config";
 import getSpotifyObjectName from "./getSpotifyObjectName";
 
 const SCOPES = ["user-read-playback-state", "user-read-currently-playing", "user-modify-playback-state"];
@@ -28,6 +30,11 @@ export interface ITrackEntry {
 export interface IGroupEntry {
     name: string;
     tracks: ITrackEntry[];
+}
+
+export interface IDevice {
+    name: string;
+    id: string;
 }
 
 function getCurrentTime(): number {
@@ -166,7 +173,7 @@ export class Spotify {
         });
     }
 
-    public async getAvailableDeviceIds(): Promise<string[]> {
+    public async getAvailableDevices(): Promise<IDevice[]> {
         await this.refreshTokenIfRequired();
         const response = await this.webApi.getMyDevices();
         const devices = response.body.devices;
@@ -175,7 +182,10 @@ export class Spotify {
                 return !device.is_restricted;
             })
             .map(function(device) {
-                return device.id;
+                return {
+                    name: device.name,
+                    id: device.id
+                };
             });
     }
 
