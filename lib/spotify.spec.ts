@@ -1,7 +1,7 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import openUrl from "open";
 import { mocked } from "ts-jest/utils";
-import { Config } from "./Config";
+import { Config, configTemplate } from "./Config";
 import getSpotifyObjectName from "./getSpotifyObjectName";
 import { Spotify } from "./Spotify";
 
@@ -118,21 +118,14 @@ function mockSearchResults(tracks, albums) {
 }
 
 function setupConfigMock(accessToken: string, refreshToken: string, searchLimit: number) {
-    mockedConfig.prototype.get.mockReturnValue({
+    const configValue = Object.assign({}, configTemplate, {
         SPOTIFY_CLIENT_ID: "VALID_SPOTIFY_CLIENT_ID",
         SPOTIFY_CLIENT_SECRET: "VALID_SPOTIFY_CLIENT_SECRET",
-        SLACK_BOT_TOKEN: "",
-        SKIP_THRESHOLD: 1,
-        DEFAULT_TRACK_LIMIT: 100,
-        AUTH_PORT: 8080,
-        BROADCAST_CHANNEL: "",
-        VOLUME_DELTA: 10,
-        SEARCH_RESULTS_LIFETIME: 43200000,
-        OPTION_EMOJIS: ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
         SPOTIFY_ACCESS_TOKEN: accessToken,
         SPOTIFY_REFRESH_TOKEN: refreshToken,
         SEARCH_LIMIT: searchLimit
     });
+    mockedConfig.prototype.get.mockReturnValue(configValue);
 }
 
 function mockAlbumResult(album: object) {

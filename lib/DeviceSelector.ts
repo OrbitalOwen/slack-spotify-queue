@@ -2,11 +2,7 @@
 
 import { Spotify, IDevice } from "./Spotify";
 import { Config } from "./Config";
-import { IActionResult } from "./Controller";
-
-export interface IActionOption extends IActionResult {
-    callback?: (index: number, creatorId: string) => Promise<IActionResult>;
-}
+import { IActionResult, ICommandResponse } from "./CommandTypes";
 
 export class DeviceSelector {
     private spotify: Spotify;
@@ -26,24 +22,24 @@ export class DeviceSelector {
         return outputString;
     }
 
-    private getOptionCallback(devices: IDevice[]): (index: number, creatorId: string) => Promise<IActionResult> {
+    private getOptionCallback(devices: IDevice[]): (index: number, creatorId: string) => Promise<ICommandResponse> {
         const spotify = this.spotify;
         return async (index: number, creatorId: string) => {
             const device = devices[index];
             if (!device) {
-                return { success: false, message: `:${this.optionEmojis[index]}: is not a valid response` };
+                return { success: false, message: `:${this.optionEmojis[index]}: is not a valid response`, type: "dm" };
             }
             try {
                 await spotify.setDeviceId(device.id);
-                return { success: true, message: `<${creatorId}> set device to ${device.name}` };
+                return { success: true, message: `<${creatorId}> set device to ${device.name}`, type: "broadcast" };
             } catch (error) {
                 console.error(error);
-                return { success: false, message: `Error setting device to ${device.name}` };
+                return { success: false, message: `Error setting device to ${device.name}`, type: "dm" };
             }
         };
     }
 
-    public async promptSelection(): Promise<IActionOption> {
+    public async promptSelection(): Promise<IActionResult> {
         let devices: IDevice[];
         try {
             devices = await this.spotify.getAvailableDevices();

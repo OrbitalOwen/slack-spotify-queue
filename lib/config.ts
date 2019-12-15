@@ -13,7 +13,8 @@ export interface IConfig {
     DEFAULT_TRACK_LIMIT: number;
     AUTH_PORT: number;
     BROADCAST_CHANNEL: string | null;
-    VOLUME_DELTA: number;
+    DEFAULT_VOLUME_DELTA: number;
+    MAX_VOLUME_DELTA: number;
     SEARCH_RESULTS_LIFETIME: number;
     OPTION_EMOJIS: string[];
     SPOTIFY_ACCESS_TOKEN: string | null;
@@ -29,7 +30,8 @@ export const configTemplate: IConfig = {
     DEFAULT_TRACK_LIMIT: 100,
     AUTH_PORT: 8080,
     BROADCAST_CHANNEL: "",
-    VOLUME_DELTA: 10,
+    DEFAULT_VOLUME_DELTA: 10,
+    MAX_VOLUME_DELTA: 20,
     SEARCH_RESULTS_LIFETIME: 43200000,
     OPTION_EMOJIS: ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "zero"],
     SPOTIFY_ACCESS_TOKEN: null,

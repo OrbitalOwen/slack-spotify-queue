@@ -59,7 +59,7 @@ beforeEach(() => {
     });
     mockedConfig.prototype.get.mockReturnValue(
         Object.assign(configTemplate, {
-            VOLUME_DELTA: 10
+            DEFAULT_VOLUME_DELTA: 10
         })
     );
 });
@@ -149,7 +149,7 @@ describe("Controller.play()", () => {
                 isPlayable: true
             }
         ]);
-        const result = await controller.play();
+        const result = await controller.play("");
         expect(result.success).toBe(false);
     });
 
@@ -157,11 +157,11 @@ describe("Controller.play()", () => {
         const controller = makeController();
         mockedQueue.prototype.isPlaying.mockReturnValue(false);
         mockedQueue.prototype.getQueue.mockReturnValue([]);
-        const result = await controller.play();
+        const result = await controller.play("");
         expect(result.success).toBe(false);
     });
 
-    test("Should call nextTrack if required and return a message with the current playing track", async () => {
+    test("Should call nextTrack if required and return a message with the current playing track and user", async () => {
         const controller = makeController();
         mockedQueue.prototype.isPlaying.mockReturnValue(false);
         mockedQueue.prototype.getQueue.mockReturnValue([
@@ -175,9 +175,10 @@ describe("Controller.play()", () => {
                 isPlayable: true
             }
         ]);
-        const result = await controller.play();
+        const result = await controller.play("John Doe");
         expect(mockedQueue.prototype.nextTrack).toBeCalled();
         expect(result.success).toBe(true);
+        expect(result.message.includes("John Doe"));
         expect(result.message.includes("track_name"));
     });
 
@@ -193,7 +194,7 @@ describe("Controller.play()", () => {
             durationMs: 100,
             isPlayable: true
         });
-        const result = await controller.play();
+        const result = await controller.play("");
         expect(mockedQueue.prototype.resume).toBeCalled();
         expect(result.success).toBe(true);
         expect(result.message.includes("track_name"));
@@ -213,7 +214,7 @@ describe("Controller.play()", () => {
         });
         jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.resume.mockRejectedValue(undefined);
-        const result = await controller.play();
+        const result = await controller.play("");
         expect(result.success).toBe(false);
     });
 });
@@ -222,7 +223,7 @@ describe("Controller.pause()", () => {
     test("Should stop spotify if the queue isn't playing", async () => {
         const controller = makeController();
         mockedQueue.prototype.isPlaying.mockReturnValue(false);
-        const result = await controller.pause();
+        const result = await controller.pause("");
         expect(mockedQueue.prototype.stop).toBeCalled();
         expect(result.success).toBe(true);
     });
@@ -232,16 +233,17 @@ describe("Controller.pause()", () => {
         mockedQueue.prototype.isPlaying.mockReturnValue(false);
         jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.stop.mockRejectedValue(undefined);
-        const result = await controller.pause();
+        const result = await controller.pause("");
         expect(result.success).toBe(false);
     });
 
     test("Should pause the queue if the queue is playing", async () => {
         const controller = makeController();
         mockedQueue.prototype.isPlaying.mockReturnValue(true);
-        const result = await controller.pause();
+        const result = await controller.pause("user_id");
         expect(mockedQueue.prototype.pause).toBeCalled();
         expect(result.success).toBe(true);
+        expect(result.message.includes("user_id")).toBe(true);
     });
 
     test("If unable to pause the queue, should fail", async () => {
@@ -249,7 +251,7 @@ describe("Controller.pause()", () => {
         mockedQueue.prototype.isPlaying.mockReturnValue(true);
         jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.pause.mockRejectedValue(undefined);
-        const result = await controller.pause();
+        const result = await controller.pause("");
         expect(result.success).toBe(false);
     });
 });
@@ -260,34 +262,79 @@ describe("Controller.changeVolume()", () => {
 
         (controller as any).queue.spotify.volume = 100;
 
-        let result = await controller.changeVolume(true);
+        let result = await controller.changeVolume("", true);
         expect(result.success).toBe(false);
         expect(result.message.includes("max")).toBe(true);
 
         (controller as any).queue.spotify.volume = 0;
-        result = await controller.changeVolume(false);
+        result = await controller.changeVolume("", false);
         expect(result.success).toBe(false);
         expect(result.message.includes("min")).toBe(true);
     });
 
     test("Should set the volume and return success if successful", async () => {
+        mockedConfig.prototype.get.mockReturnValue(
+            Object.assign(configTemplate, {
+                DEFAULT_VOLUME_DELTA: 5
+            })
+        );
+
         const controller = makeController();
         (controller as any).queue.spotify.volume = 50;
-        let result = await controller.changeVolume(true);
+        let result = await controller.changeVolume("", true);
+        expect(result.success).toBe(true);
+        expect(mockedSpotify.prototype.setVolume).toBeCalledWith(55);
+
+        (controller as any).queue.spotify.volume = 50;
+        result = await controller.changeVolume("", false);
+        expect(result.success).toBe(true);
+        expect(mockedSpotify.prototype.setVolume).toBeCalledWith(45);
+    });
+
+    test("Should accept an optional amount value", async () => {
+        mockedConfig.prototype.get.mockReturnValue(
+            Object.assign(configTemplate, {
+                DEFAULT_VOLUME_DELTA: 5
+            })
+        );
+
+        const controller = makeController();
+        (controller as any).queue.spotify.volume = 50;
+        let result = await controller.changeVolume("", true, 20);
+        expect(result.success).toBe(true);
+        expect(mockedSpotify.prototype.setVolume).toBeCalledWith(70);
+
+        (controller as any).queue.spotify.volume = 50;
+        result = await controller.changeVolume("", false, 20);
+        expect(result.success).toBe(true);
+        expect(mockedSpotify.prototype.setVolume).toBeCalledWith(30);
+    });
+
+    test("Should constrain the optional amount value", async () => {
+        mockedConfig.prototype.get.mockReturnValue(
+            Object.assign(configTemplate, {
+                DEFAULT_VOLUME_DELTA: 5,
+                MAX_VOLUME_DELTA: 10
+            })
+        );
+
+        const controller = makeController();
+        (controller as any).queue.spotify.volume = 50;
+        let result = await controller.changeVolume("", true, 20);
         expect(result.success).toBe(true);
         expect(mockedSpotify.prototype.setVolume).toBeCalledWith(60);
 
         (controller as any).queue.spotify.volume = 50;
-        result = await controller.changeVolume(false);
+        result = await controller.changeVolume("", false, 20);
         expect(result.success).toBe(true);
         expect(mockedSpotify.prototype.setVolume).toBeCalledWith(40);
     });
 
-    test("Should fail if not successfull", async () => {
+    test("Should fail if not successful", async () => {
         const controller = makeController();
         jest.spyOn(console, "error").mockImplementation(() => {});
         mockedSpotify.prototype.setVolume.mockRejectedValue(undefined);
-        const result = await controller.changeVolume(true);
+        const result = await controller.changeVolume("", true);
         expect(result.success).toBe(false);
     });
 });

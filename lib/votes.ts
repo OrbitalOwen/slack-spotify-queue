@@ -1,8 +1,9 @@
 // Handles votes and skipping
+import cloneDeep from "lodash.clonedeep";
 
 import { Config } from "./Config";
 import { Queue, IQueueEntry } from "./Queue";
-import cloneDeep from "lodash.clonedeep";
+import { IActionResult } from "./CommandTypes";
 
 interface IVote {
     queueId: number;
@@ -19,6 +20,21 @@ export class Votes {
         this.threshold = config.get().SKIP_THRESHOLD;
         this.queue = queue;
         this.votes = [];
+    }
+
+    private getAllTracks() {
+        let allTracks: IQueueEntry[] = [];
+        const currentEntry = this.queue.getCurrentEntry();
+        if (currentEntry) {
+            allTracks.push(currentEntry);
+        }
+        allTracks = allTracks.concat(this.queue.getQueue());
+        return allTracks;
+    }
+
+    private getEntry(queueId: number) {
+        const allTracks = this.getAllTracks();
+        return allTracks.find((entry) => entry.queueId === queueId);
     }
 
     public canVoteOnTrack(userId: string, queueId: number): boolean {
@@ -43,7 +59,9 @@ export class Votes {
             }
             if (!vote.usersFor.includes(userId)) {
                 vote.usersFor.push(userId);
-                if (vote.usersFor.length >= this.threshold) {
+                const entry = this.getEntry(queueId);
+                const isCreator = entry ? entry.creatorId === userId : false;
+                if (vote.usersFor.length >= this.threshold || isCreator) {
                     vote.passed = true;
                     idsToRemove.push(vote.queueId);
                     const index = this.votes.indexOf(vote);
@@ -59,12 +77,7 @@ export class Votes {
     }
 
     private getTracksInGroup(groupId: number): number[] {
-        let allTracks: IQueueEntry[] = [];
-        const currentEntry = this.queue.getCurrentEntry();
-        if (currentEntry) {
-            allTracks.push(currentEntry);
-        }
-        allTracks = allTracks.concat(this.queue.getQueue());
+        const allTracks = this.getAllTracks();
         return allTracks.filter((entry) => entry.groupId === groupId).map((entry) => entry.queueId);
     }
 
@@ -81,5 +94,52 @@ export class Votes {
     public async voteOnGroup(userId: string, groupId: number): Promise<IVote[]> {
         const queueIds = this.getTracksInGroup(groupId);
         return await this.voteOnTracks(userId, queueIds);
+    }
+
+    public async skipCurrent(userId: string, group: boolean): Promise<IActionResult> {
+        const currentEntry = this.queue.getCurrentEntry();
+        if (!currentEntry) {
+            return { success: false, message: "No active track" };
+        }
+        const canVote = group
+            ? this.canVoteOnTrack(userId, currentEntry.queueId)
+            : this.canVoteOnGroup(userId, currentEntry.groupId);
+
+        if (!canVote) {
+            const type = group ? "group" : "track";
+            return { success: false, message: `Already voted to skip this ${type}` };
+        }
+
+        const voteResults = group
+            ? await this.voteOnGroup(userId, currentEntry.groupId)
+            : await this.voteOnTracks(userId, [currentEntry.queueId]);
+
+        const votesPassed = voteResults.filter((vote) => vote.passed).length;
+
+        if (votesPassed === 0) {
+            if (group) {
+                return {
+                    success: true,
+                    message: `<${userId}> voted to skip ${voteResults.length} track(s) from ${currentEntry.groupName}`
+                };
+            } else {
+                return {
+                    success: true,
+                    message: `<${userId}> voted to skip ${currentEntry.name}`
+                };
+            }
+        } else {
+            if (group) {
+                return {
+                    success: true,
+                    message: `<${userId}> voted to skip ${voteResults.length} track(s) from ${currentEntry.groupName}. Now skipping ${votesPassed} track(s)`
+                };
+            } else {
+                return {
+                    success: true,
+                    message: `<${userId}> voted to skip ${currentEntry.name}. Now skipping`
+                };
+            }
+        }
     }
 }

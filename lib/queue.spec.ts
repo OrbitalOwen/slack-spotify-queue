@@ -1,5 +1,5 @@
 import { Queue } from "./Queue";
-import { Config, IConfig } from "./Config";
+import { Config, IConfig, configTemplate } from "./Config";
 import { Spotify } from "./Spotify";
 import { IResource } from "./identifySpotifyResource";
 import { mocked } from "ts-jest/utils";
@@ -27,24 +27,7 @@ function mockSpotify() {
 }
 
 function mockConfig(config?: object) {
-    const configValue: IConfig = Object.assign(
-        {
-            SPOTIFY_CLIENT_ID: "",
-            SPOTIFY_CLIENT_SECRET: "",
-            SLACK_BOT_TOKEN: "",
-            SKIP_THRESHOLD: 1,
-            DEFAULT_TRACK_LIMIT: 100,
-            AUTH_PORT: 8080,
-            BROADCAST_CHANNEL: "",
-            VOLUME_DELTA: 10,
-            SEARCH_RESULTS_LIFETIME: 43200000,
-            OPTION_EMOJIS: ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
-            SPOTIFY_ACCESS_TOKEN: null,
-            SPOTIFY_REFRESH_TOKEN: null,
-            SEARCH_LIMIT: 3
-        },
-        config ? config : {}
-    );
+    const configValue: IConfig = Object.assign({}, configTemplate, config ? config : {});
     mockedConfig.prototype.get.mockReturnValue(configValue);
 }
 
@@ -117,7 +100,7 @@ describe("Queue.add()", () => {
         expect(currentQueue[2].queueId).toBe(3);
     });
 
-    test("Should add the tracks from an album to the queue, with a shared groupId", async () => {
+    test("Should add the tracks from an album to the queue, with a shared groupId and group name", async () => {
         const queue = makeQueue();
         mockedSpotify.prototype.getAlbum.mockResolvedValue({
             name: "album_name",
@@ -150,7 +133,8 @@ describe("Queue.add()", () => {
             creatorId: "creator_id",
             groupId: 1,
             queueId: 1,
-            isPlayable: true
+            isPlayable: true,
+            groupName: "album_name"
         });
         expect(currentQueue[1]).toEqual({
             name: "track_name_2",
@@ -159,7 +143,8 @@ describe("Queue.add()", () => {
             creatorId: "creator_id",
             groupId: 1,
             queueId: 2,
-            isPlayable: true
+            isPlayable: true,
+            groupName: "album_name"
         });
     });
 
@@ -196,7 +181,8 @@ describe("Queue.add()", () => {
             creatorId: "creator_id",
             groupId: 1,
             queueId: 1,
-            isPlayable: true
+            isPlayable: true,
+            groupName: "playlist_name"
         });
         expect(currentQueue[1]).toEqual({
             name: "track_name_2",
@@ -205,7 +191,8 @@ describe("Queue.add()", () => {
             creatorId: "creator_id",
             groupId: 1,
             queueId: 2,
-            isPlayable: true
+            isPlayable: true,
+            groupName: "playlist_name"
         });
     });
 

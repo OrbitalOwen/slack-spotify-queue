@@ -74,6 +74,27 @@ describe("Votes.voteOnTracks()", () => {
         expect(votesParticipated[0].passed).toBe(true);
     });
 
+    test("Should allow the creator to skip their own track", async () => {
+        mockedQueue.prototype.getQueue.mockReturnValue([
+            { name: "", uri: "", durationMs: 0, creatorId: "user_id", queueId: 1, groupId: 1, isPlayable: true }
+        ]);
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue({
+            name: "",
+            uri: "",
+            durationMs: 0,
+            creatorId: "user_id",
+            queueId: 2,
+            groupId: 1,
+            isPlayable: true
+        });
+
+        const votes = makeVotes();
+        (votes as any).threshold = 3;
+        const votesParticipated = await votes.voteOnTracks("user_id", [1, 2]);
+        expect(votesParticipated[0].passed).toBe(true);
+        expect(votesParticipated[1].passed).toBe(true);
+    });
+
     test("Should not allow a user to vote on a track twice", async () => {
         const votes = makeVotes();
         (votes as any).votes = [{ queueId: 1, usersFor: ["user_id"] }];
@@ -165,5 +186,185 @@ describe("Votes.voteOnGroup()", () => {
             { queueId: 1, usersFor: ["user_id"] },
             { queueId: 2, usersFor: ["user_id"] }
         ]);
+    });
+});
+
+describe("Votes.skipCurrent()", () => {
+    test("Should fail if there is no current entry", async () => {
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue(undefined);
+
+        const votes = makeVotes();
+        const result = await votes.skipCurrent("user_id", false);
+
+        expect(result.success).toBe(false);
+    });
+
+    test("Should fail if the user has already voted for this track", async () => {
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue({
+            name: "",
+            uri: "",
+            durationMs: 0,
+            creatorId: "peter",
+            queueId: 1,
+            groupId: 1,
+            isPlayable: true
+        });
+
+        const votes = makeVotes();
+        (votes as any).votes = [{ queueId: 1, usersFor: ["user_id"] }];
+
+        const result = await votes.skipCurrent("user_id", false);
+        expect(result.success).toBe(false);
+    });
+
+    test("Should fail if the user has already voted for this group", async () => {
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue({
+            name: "",
+            uri: "",
+            durationMs: 0,
+            creatorId: "peter",
+            queueId: 1,
+            groupId: 1,
+            isPlayable: true
+        });
+        mockedQueue.prototype.getQueue.mockReturnValue([
+            { name: "", uri: "", durationMs: 0, creatorId: "peter", queueId: 2, groupId: 1, isPlayable: true }
+        ]);
+
+        const votes = makeVotes();
+        (votes as any).votes = [{ queueId: 1, usersFor: ["user_id"] }];
+
+        const result = await votes.skipCurrent("user_id", true);
+
+        expect(result.success).toBe(false);
+    });
+
+    test("Should vote on the track", async () => {
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue({
+            name: "",
+            uri: "",
+            durationMs: 0,
+            creatorId: "peter",
+            queueId: 1,
+            groupId: 1,
+            isPlayable: true
+        });
+
+        const votes = makeVotes();
+        (votes as any).votes = [];
+
+        const result = await votes.skipCurrent("user_id", false);
+
+        expect(result.success).toBe(true);
+        expect((votes as any).votes).toEqual([{ queueId: 1, usersFor: ["user_id"] }]);
+    });
+
+    test("Should vote on the group", async () => {
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue({
+            name: "",
+            uri: "",
+            durationMs: 0,
+            creatorId: "peter",
+            queueId: 1,
+            groupId: 1,
+            isPlayable: true
+        });
+        mockedQueue.prototype.getQueue.mockReturnValue([
+            { name: "", uri: "", durationMs: 0, creatorId: "peter", queueId: 2, groupId: 1, isPlayable: true }
+        ]);
+
+        const votes = makeVotes();
+        const result = await votes.skipCurrent("user_id", true);
+
+        expect(result.success).toBe(true);
+        expect((votes as any).votes).toEqual([
+            { queueId: 1, usersFor: ["user_id"] },
+            { queueId: 2, usersFor: ["user_id"] }
+        ]);
+    });
+
+    test("Should return a message if no votes passed on a group", async () => {
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue({
+            name: "",
+            uri: "",
+            durationMs: 0,
+            creatorId: "peter",
+            queueId: 1,
+            groupId: 1,
+            isPlayable: true,
+            groupName: "groupName"
+        });
+        mockedQueue.prototype.getQueue.mockReturnValue([
+            { name: "", uri: "", durationMs: 0, creatorId: "peter", queueId: 2, groupId: 1, isPlayable: true }
+        ]);
+
+        const votes = makeVotes();
+        const result = await votes.skipCurrent("user_id", true);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toBe("<user_id> voted to skip 2 track(s) from groupName");
+    });
+
+    test("Should return a message if the vote did not pass on a track", async () => {
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue({
+            name: "trackName",
+            uri: "",
+            durationMs: 0,
+            creatorId: "peter",
+            queueId: 1,
+            groupId: 1,
+            isPlayable: true
+        });
+
+        const votes = makeVotes();
+        (votes as any).votes = [];
+
+        const result = await votes.skipCurrent("user_id", false);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toBe("<user_id> voted to skip trackName");
+    });
+
+    test("Should return a message if some votes passed on a group", async () => {
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue({
+            name: "",
+            uri: "",
+            durationMs: 0,
+            creatorId: "peter",
+            queueId: 1,
+            groupId: 1,
+            isPlayable: true,
+            groupName: "groupName"
+        });
+        mockedQueue.prototype.getQueue.mockReturnValue([
+            { name: "", uri: "", durationMs: 0, creatorId: "peter", queueId: 2, groupId: 1, isPlayable: true }
+        ]);
+
+        const votes = makeVotes();
+        (votes as any).votes = [{ queueId: 1, usersFor: ["user1", "user2"] }];
+        const result = await votes.skipCurrent("user_id", true);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toBe("<user_id> voted to skip 2 track(s) from groupName. Now skipping 1 track(s)");
+    });
+
+    test("Should return a message if the vote passed on a track", async () => {
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue({
+            name: "trackName",
+            uri: "",
+            durationMs: 0,
+            creatorId: "peter",
+            queueId: 1,
+            groupId: 1,
+            isPlayable: true
+        });
+
+        const votes = makeVotes();
+        (votes as any).votes = [{ queueId: 1, usersFor: ["user1", "user2"] }];
+
+        const result = await votes.skipCurrent("user_id", false);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toBe("<user_id> voted to skip trackName. Now skipping");
     });
 });

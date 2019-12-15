@@ -3,11 +3,7 @@
 import { Config } from "./Config";
 import { Queue, IQueueEntry } from "./Queue";
 import { identifySpotifyResource } from "./identifySpotifyResource";
-
-export interface IActionResult {
-    success: boolean;
-    message?: string;
-}
+import { IActionResult } from "./CommandTypes";
 
 export class Controller {
     private config: Config;
@@ -53,7 +49,7 @@ export class Controller {
         }
     }
 
-    public async play(): Promise<IActionResult> {
+    public async play(userId: string): Promise<IActionResult> {
         if (this.queue.isPlaying()) {
             return {
                 success: false,
@@ -75,7 +71,7 @@ export class Controller {
             }
             return {
                 success: true,
-                message: `Now playing ${queueEntry.name}`
+                message: `<${userId}> hit play, now playing ${queueEntry.name}`
             };
         } catch (error) {
             console.error(error);
@@ -86,7 +82,7 @@ export class Controller {
         }
     }
 
-    public async pause(): Promise<IActionResult> {
+    public async pause(userId: string): Promise<IActionResult> {
         if (!this.queue.isPlaying()) {
             try {
                 await this.queue.stop();
@@ -104,7 +100,7 @@ export class Controller {
         }
         try {
             await this.queue.pause();
-            return { success: true };
+            return { success: true, message: `<${userId}> hit pause` };
         } catch (error) {
             console.error(error);
             return {
@@ -114,11 +110,14 @@ export class Controller {
         }
     }
 
-    public async changeVolume(up: boolean): Promise<IActionResult> {
+    public async changeVolume(userId: string, up: boolean, customValue?: number): Promise<IActionResult> {
+        const configValues = this.config.get();
+        const value = customValue
+            ? Math.min(customValue, configValues.MAX_VOLUME_DELTA)
+            : configValues.DEFAULT_VOLUME_DELTA;
         const spotify = this.queue.spotify;
         const volume = spotify.volume;
-        const volumeDelta = this.config.get().VOLUME_DELTA;
-        const delta = up ? volumeDelta : -volumeDelta;
+        const delta = up ? value : -value;
         const newVolume = Math.floor(Math.min(100, Math.max(0, volume + delta)));
         if (newVolume === volume) {
             return {
@@ -130,7 +129,7 @@ export class Controller {
             await spotify.setVolume(newVolume);
             return {
                 success: true,
-                message: `Set volume to ${newVolume}%`
+                message: `<${userId}> set volume to ${newVolume}%`
             };
         } catch (error) {
             console.error(error);

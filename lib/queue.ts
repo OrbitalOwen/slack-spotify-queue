@@ -9,6 +9,7 @@ export interface IQueueEntry extends ITrackEntry {
     creatorId: string;
     queueId: number;
     groupId: number;
+    groupName?: string;
     pausedProgressMs?: number;
 }
 
@@ -38,13 +39,14 @@ export class Queue {
         this.playing = false;
     }
 
-    private addTrackToQueue(trackEntry: ITrackEntry, creatorId: string, groupId: number): void {
+    private addTrackToQueue(trackEntry: ITrackEntry, creatorId: string, groupId: number, groupName?: string): void {
         this.queueId += 1;
         const queueId = this.queueId;
         const queueEntry: IQueueEntry = Object.assign({}, trackEntry, {
             creatorId,
             queueId,
-            groupId
+            groupId,
+            groupName
         });
         this.queue.push(queueEntry);
     }
@@ -62,7 +64,7 @@ export class Queue {
             const trackEntry = validTracks[i];
             if (trackEntry.isPlayable) {
                 tracksAdded += 1;
-                this.addTrackToQueue(trackEntry, creatorId, groupId);
+                this.addTrackToQueue(trackEntry, creatorId, groupId, groupEntry.name);
             }
         }
 
