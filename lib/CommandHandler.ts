@@ -4,9 +4,8 @@ import { Controller } from "./Controller";
 import { SearchHandler } from "./SearchHandler";
 import { Votes } from "./Votes";
 import { DeviceSelector } from "./DeviceSelector";
-import { Config } from "./Config";
 import { NowPlaying } from "./NowPlaying";
-import { IActionResult, ICommandResponse } from "./CommandTypes";
+import { ICommandResponse } from "./CommandTypes";
 
 function splitRawCommand(rawString: string) {
     const components = rawString.split(" ");

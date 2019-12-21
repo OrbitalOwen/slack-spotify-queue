@@ -1,4 +1,5 @@
-// Provides a human readable queue string
+// Provides a human readable status update
+
 import prettyMilliseconds from "pretty-ms";
 import { Queue, IQueueEntry } from "./Queue";
 

@@ -1,17 +1,17 @@
-import SlackBot from "./lib/slackBot";
-import { SpotifyQueue } from "./lib/spotifyQueue";
+// import SlackBot from "./lib/slackBot";
+// import { SpotifyQueue } from "./lib/spotifyQueue";
 
-const queue = new SpotifyQueue();
-const bot = new SlackBot(queue);
+// const queue = new SpotifyQueue();
+// const bot = new SlackBot(queue);
 
-// bot.listenForMessages();
+// // bot.listenForMessages();
 
-queue
-    .authorize()
-    .then(function() {
-        console.log("Spotify authorized, listening for slack messages");
-        bot.listenForMessages();
-    })
-    .catch(function() {
-        console.error("Failed to authorize Spotify");
-    });
+// queue
+//     .authorize()
+//     .then(function() {
+//         console.log("Spotify authorized, listening for slack messages");
+//         bot.listenForMessages();
+//     })
+//     .catch(function() {
+//         console.error("Failed to authorize Spotify");
+//     });
