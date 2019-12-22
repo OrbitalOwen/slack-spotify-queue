@@ -423,7 +423,7 @@ describe("Queue.nextTrack()", () => {
         expect(isPlaying).toBe(true);
     });
 
-    test("If the queue is empty, should stop playback", async () => {
+    test("If the queue is empty, should set currentEntry to undefined", async () => {
         const queue = makeQueue();
 
         await addTrack(queue, "track_name", "track_id", "track_uri", "creator_id", 0);
@@ -431,10 +431,7 @@ describe("Queue.nextTrack()", () => {
         await queue.nextTrack();
 
         const currentEntry = queue.getCurrentEntry();
-        const isPlaying = queue.isPlaying();
-
         expect(currentEntry).toBe(undefined);
-        expect(isPlaying).toBe(false);
     });
 
     test("If playback is successful, should advance the queue", async () => {
@@ -467,6 +464,7 @@ describe("Queue.nextTrack()", () => {
 
     test("If playback is not successful, should not set playing to true", async () => {
         const queue = makeQueue();
+        (queue as any).playing = false;
         await addTrack(queue, "track_name", "track_id", "track_uri", "creator_id", 0);
         mockedSpotify.prototype.play.mockRejectedValue(null);
         await expect(queue.nextTrack()).rejects.toBe(null);
@@ -730,6 +728,17 @@ describe("Queue.pause()", () => {
             progressMs: 100
         });
         await expect(queue.pause()).rejects.toEqual(expect.any(Error));
+    });
+
+    test("If there is no current entry, should set playing to false and return", async () => {
+        const queue = makeQueue();
+        (queue as any).playing = true;
+        (queue as any).currentEntry = undefined;
+
+        await queue.pause();
+
+        expect(queue.isPlaying()).toBe(false);
+        expect(mockedSpotify.prototype.pause).not.toHaveBeenCalled();
     });
 
     test("Should throw an error ir spotify is not currently playing", async () => {

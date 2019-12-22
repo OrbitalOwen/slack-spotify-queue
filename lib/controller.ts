@@ -44,6 +44,18 @@ export class Controller {
             } else {
                 message = `<@${creatorId}> added ${addResponse.tracks} tracks from ${addResponse.type} ${addResponse.name} to the queue`;
             }
+            const currentEntry = this.queue.getCurrentEntry();
+            const playing = this.queue.isPlaying();
+
+            if (playing && !currentEntry) {
+                const result = await this.play(creatorId);
+                if (!result.success) {
+                    return {
+                        success: false,
+                        message: "Resource queued successfully but failed to play"
+                    };
+                }
+            }
             return {
                 success: true,
                 message
@@ -58,12 +70,6 @@ export class Controller {
     }
 
     public async play(userId: string): Promise<IActionResult> {
-        if (this.queue.isPlaying()) {
-            return {
-                success: false,
-                message: "Queue already playing"
-            };
-        }
         try {
             let queueEntry: IQueueEntry;
             if (!this.queue.getCurrentEntry()) {

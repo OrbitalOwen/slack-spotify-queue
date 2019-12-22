@@ -69,7 +69,7 @@ afterEach(() => {
 });
 
 describe("Controller.add()", () => {
-    test("Should return a failiure if an invalid resource is given", async () => {
+    test("Should return a failure if an invalid resource is given", async () => {
         mockedIdentifySpotifyResource.mockReturnValue(undefined);
         const controller = makeController();
         const result = await controller.add("creator_id", "resource");
@@ -89,7 +89,7 @@ describe("Controller.add()", () => {
         expect(mockedQueue.prototype.add.mock.calls[0][2]).toBe(5);
     });
 
-    test("If adding a track is succesfull, should return a success", async () => {
+    test("If adding a track is successful, should return a success", async () => {
         const controller = makeController();
         const result = await controller.add("creator_id", "resource");
         expect(result.success).toBe(true);
@@ -97,7 +97,7 @@ describe("Controller.add()", () => {
         expect(result.message.includes("track_name")).toBe(true);
     });
 
-    test("If adding a playlist or album is succesfull, should return a success", async () => {
+    test("If adding a playlist or album is successful, should return a success", async () => {
         mockedQueue.prototype.add.mockResolvedValue({
             name: "album_name",
             type: "album",
@@ -112,7 +112,7 @@ describe("Controller.add()", () => {
         expect(result.message.includes("album_name")).toBe(true);
     });
 
-    test("If no tracks could be added, should return a failiure", async () => {
+    test("If no tracks could be added, should return a failure", async () => {
         mockedQueue.prototype.add.mockResolvedValue({
             name: "album_name",
             type: "album",
@@ -125,33 +125,33 @@ describe("Controller.add()", () => {
         expect(result.success).toBe(false);
     });
 
-    test("If adding is not succesfull, should return a failiure message", async () => {
+    test("If adding is not successful, should return a failure message", async () => {
         mockedQueue.prototype.add.mockRejectedValue(undefined);
         const controller = makeController();
         const result = await controller.add("creator_id", "resource");
         expect(result.success).toBe(false);
     });
+
+    test("If the queue is currently playing but with no track, should start the queue", async () => {
+        mockedQueue.prototype.isPlaying.mockReturnValue(true);
+        mockedQueue.prototype.getCurrentEntry.mockReturnValue(undefined);
+
+        const controller = makeController();
+        const playSpy = jest.spyOn(controller, "play");
+        playSpy.mockResolvedValue({ success: true });
+
+        let result = await controller.add("creator_id", "resource");
+        expect(playSpy).toHaveBeenCalledWith("creator_id");
+        expect(result.success).toBe(true);
+
+        playSpy.mockResolvedValue({ success: false });
+        result = await controller.add("creator_id", "resource");
+        expect(playSpy).toHaveBeenCalledWith("creator_id");
+        expect(result.success).toBe(false);
+    });
 });
 
 describe("Controller.play()", () => {
-    test("Should fail if the queue is already playing", async () => {
-        const controller = makeController();
-        mockedQueue.prototype.isPlaying.mockReturnValue(true);
-        mockedQueue.prototype.getQueue.mockReturnValue([
-            {
-                name: "name",
-                uri: "uri",
-                creatorId: "creator_id",
-                queueId: 1,
-                groupId: 1,
-                durationMs: 100,
-                isPlayable: true
-            }
-        ]);
-        const result = await controller.play("");
-        expect(result.success).toBe(false);
-    });
-
     test("Should fail if called when the queue is empty and no track is paused", async () => {
         const controller = makeController();
         mockedQueue.prototype.isPlaying.mockReturnValue(false);

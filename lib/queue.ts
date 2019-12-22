@@ -37,7 +37,7 @@ export class Queue {
         this.queue = [];
         this.queueId = 0;
         this.groupId = 0;
-        this.playing = false;
+        this.playing = true;
     }
 
     private addTrackToQueue(trackEntry: ITrackEntry, creatorId: string, groupId: number, groupName?: string): void {
@@ -143,7 +143,6 @@ export class Queue {
         const queueEntry = this.queue[0];
         if (!queueEntry) {
             this.currentEntry = null;
-            this.playing = false;
             return;
         }
         await this.spotify.play(queueEntry.uri);
@@ -167,6 +166,10 @@ export class Queue {
     public async pause(): Promise<void> {
         if (!this.playing) {
             throw new Error("Cannot pause. Not playing.");
+        }
+        if (!this.currentEntry) {
+            this.playing = false;
+            return;
         }
         const playbackInfo = await this.spotify.getPlaybackInfo();
         if (!playbackInfo.isPlaying) {
