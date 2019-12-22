@@ -52,7 +52,7 @@ describe("NowPlaying.get()", () => {
         });
         mockedQueue.prototype.getQueue.mockReturnValue([]);
 
-        expect(get()).toBe(`*Now Playing:* track_name - mm:ss (<creator_id>)\n*Queue:*`);
+        expect(get()).toBe(`*Now Playing:* track_name - mm:ss (<@creator_id>)\n*Queue:*`);
     });
 
     test("Should show the queue", () => {
@@ -70,13 +70,13 @@ describe("NowPlaying.get()", () => {
         mockedQueue.prototype.getQueue.mockReturnValue(Array(7).fill(entry));
 
         expect(get()).toBe(`*Paused:* Nothing\n*Queue:*
-1: track_name - mm:ss (<creator_id>)
-2: track_name - mm:ss (<creator_id>)
-3: track_name - mm:ss (<creator_id>)
-4: track_name - mm:ss (<creator_id>)
-5: track_name - mm:ss (<creator_id>)
-6: track_name - mm:ss (<creator_id>)
-7: track_name - mm:ss (<creator_id>)`);
+1: track_name - mm:ss (<@creator_id>)
+2: track_name - mm:ss (<@creator_id>)
+3: track_name - mm:ss (<@creator_id>)
+4: track_name - mm:ss (<@creator_id>)
+5: track_name - mm:ss (<@creator_id>)
+6: track_name - mm:ss (<@creator_id>)
+7: track_name - mm:ss (<@creator_id>)`);
     });
 
     test("Should show the remainder if any", () => {
@@ -94,16 +94,16 @@ describe("NowPlaying.get()", () => {
         mockedQueue.prototype.getQueue.mockReturnValue(Array(12).fill(entry));
 
         expect(get()).toBe(`*Paused:* Nothing\n*Queue:*
-1: track_name - mm:ss (<creator_id>)
-2: track_name - mm:ss (<creator_id>)
-3: track_name - mm:ss (<creator_id>)
-4: track_name - mm:ss (<creator_id>)
-5: track_name - mm:ss (<creator_id>)
-6: track_name - mm:ss (<creator_id>)
-7: track_name - mm:ss (<creator_id>)
-8: track_name - mm:ss (<creator_id>)
-9: track_name - mm:ss (<creator_id>)
-10: track_name - mm:ss (<creator_id>)
+1: track_name - mm:ss (<@creator_id>)
+2: track_name - mm:ss (<@creator_id>)
+3: track_name - mm:ss (<@creator_id>)
+4: track_name - mm:ss (<@creator_id>)
+5: track_name - mm:ss (<@creator_id>)
+6: track_name - mm:ss (<@creator_id>)
+7: track_name - mm:ss (<@creator_id>)
+8: track_name - mm:ss (<@creator_id>)
+9: track_name - mm:ss (<@creator_id>)
+10: track_name - mm:ss (<@creator_id>)
 +2 more`);
     });
 });

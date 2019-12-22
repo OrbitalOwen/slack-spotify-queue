@@ -397,7 +397,7 @@ describe("listen()", () => {
         expect(mockedSlack.prototype.sendMessage.mock.calls[0][0]).toBe("broadcast_channel");
     });
 
-    test("Should DM response if there is no broadcast channel", async () => {
+    test.only("Should DM response if there is no broadcast channel", async () => {
         mockedCommandHandler.prototype.processCommand.mockResolvedValue({
             success: true,
             message: "These are your options",
@@ -405,7 +405,7 @@ describe("listen()", () => {
         });
         mockedConfig.prototype.get.mockReturnValue(
             Object.assign({}, configTemplate, {
-                BROADCAST_CHANNEL: undefined
+                BROADCAST_CHANNEL: null
             })
         );
 

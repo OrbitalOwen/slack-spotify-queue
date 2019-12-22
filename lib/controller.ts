@@ -39,9 +39,9 @@ export class Controller {
                 };
             }
             if (addResponse.type === "track") {
-                message = `<${creatorId}> added ${addResponse.name} to the queue`;
+                message = `<@${creatorId}> added ${addResponse.name} to the queue`;
             } else {
-                message = `<${creatorId}> added ${addResponse.tracks} tracks from ${addResponse.type} ${addResponse.name} to the queue`;
+                message = `<@${creatorId}> added ${addResponse.tracks} tracks from ${addResponse.type} ${addResponse.name} to the queue`;
             }
             return {
                 success: true,
@@ -78,7 +78,7 @@ export class Controller {
             }
             return {
                 success: true,
-                message: `<${userId}> hit play, now playing ${queueEntry.name}`
+                message: `<@${userId}> hit play, now playing ${queueEntry.name}`
             };
         } catch (error) {
             console.error(error);
@@ -107,7 +107,7 @@ export class Controller {
         }
         try {
             await this.queue.pause();
-            return { success: true, message: `<${userId}> hit pause` };
+            return { success: true, message: `<@${userId}> hit pause` };
         } catch (error) {
             return {
                 success: false,
@@ -135,7 +135,7 @@ export class Controller {
             await spotify.setVolume(newVolume);
             return {
                 success: true,
-                message: `<${userId}> set volume to ${newVolume}%`
+                message: `<@${userId}> set volume to ${newVolume}%`
             };
         } catch (error) {
             console.error(error);

@@ -57,7 +57,7 @@ export class Bot {
     private async processResponse(channel: string, response: ICommandResponse) {
         if (response.message) {
             const broadcastChannel = this.config.get().BROADCAST_CHANNEL;
-            const sendChannel = response.type === "dm" ? channel : broadcastChannel ? broadcastChannel : undefined;
+            const sendChannel = response.type === "dm" ? channel : broadcastChannel ? broadcastChannel : channel;
             if (sendChannel) {
                 try {
                     const message = await this.slack.sendMessage(sendChannel, response.message);

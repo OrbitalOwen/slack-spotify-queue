@@ -61,7 +61,7 @@ export class SearchHandler {
                 }
                 return {
                     success: true,
-                    message: `<${creatorId}> added ${addResponse.tracks} tracks from ${addResponse.type} ${addResponse.name} to the queue`,
+                    message: `<@${creatorId}> added ${addResponse.tracks} tracks from ${addResponse.type} ${addResponse.name} to the queue`,
                     type: "broadcast"
                 };
             } catch (error) {

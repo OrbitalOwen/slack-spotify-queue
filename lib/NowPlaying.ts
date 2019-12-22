@@ -7,7 +7,7 @@ function getEntryString(entry: IQueueEntry): string {
     const timeString = prettyMilliseconds(entry.durationMs, {
         secondsDecimalDigits: 0
     });
-    return `${entry.name} - ${timeString} (<${entry.creatorId}>)`;
+    return `${entry.name} - ${timeString} (<@${entry.creatorId}>)`;
 }
 
 export class NowPlaying {

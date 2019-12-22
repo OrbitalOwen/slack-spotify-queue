@@ -31,7 +31,7 @@ export class DeviceSelector {
             }
             try {
                 await spotify.setDeviceId(device.id);
-                return { success: true, message: `<${creatorId}> set device to ${device.name}`, type: "broadcast" };
+                return { success: true, message: `<@${creatorId}> set device to ${device.name}`, type: "broadcast" };
             } catch (error) {
                 console.error(error);
                 return { success: false, message: `Error setting device to ${device.name}`, type: "dm" };

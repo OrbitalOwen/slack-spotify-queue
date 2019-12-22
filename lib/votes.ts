@@ -120,24 +120,24 @@ export class Votes {
             if (group) {
                 return {
                     success: true,
-                    message: `<${userId}> voted to skip ${voteResults.length} track(s) from ${currentEntry.groupName}`
+                    message: `<@${userId}> voted to skip ${voteResults.length} track(s) from ${currentEntry.groupName}`
                 };
             } else {
                 return {
                     success: true,
-                    message: `<${userId}> voted to skip ${currentEntry.name}`
+                    message: `<@${userId}> voted to skip ${currentEntry.name}`
                 };
             }
         } else {
             if (group) {
                 return {
                     success: true,
-                    message: `<${userId}> voted to skip ${voteResults.length} track(s) from ${currentEntry.groupName}. Now skipping ${votesPassed} track(s)`
+                    message: `<@${userId}> voted to skip ${voteResults.length} track(s) from ${currentEntry.groupName}. Now skipping ${votesPassed} track(s)`
                 };
             } else {
                 return {
                     success: true,
-                    message: `<${userId}> voted to skip ${currentEntry.name}. Now skipping`
+                    message: `<@${userId}> voted to skip ${currentEntry.name}. Now skipping`
                 };
             }
         }

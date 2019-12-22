@@ -167,6 +167,7 @@ export class Spotify {
             throw new Error("Device is not valid");
         }
         this.deviceId = deviceId;
+        console.log(`Set device to ${deviceId}`);
         await this.webApi.transferMyPlayback({
             device_ids: [deviceId],
             play: false
@@ -176,6 +177,7 @@ export class Spotify {
     public async getAvailableDevices(): Promise<IDevice[]> {
         await this.refreshTokenIfRequired();
         const response = await this.webApi.getMyDevices();
+
         const devices = response.body.devices;
         return devices
             .filter(function(device) {

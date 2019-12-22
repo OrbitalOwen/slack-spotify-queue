@@ -302,7 +302,7 @@ describe("Votes.skipCurrent()", () => {
         const result = await votes.skipCurrent("user_id", true);
 
         expect(result.success).toBe(true);
-        expect(result.message).toBe("<user_id> voted to skip 2 track(s) from groupName");
+        expect(result.message).toBe("<@user_id> voted to skip 2 track(s) from groupName");
     });
 
     test("Should return a message if the vote did not pass on a track", async () => {
@@ -322,7 +322,7 @@ describe("Votes.skipCurrent()", () => {
         const result = await votes.skipCurrent("user_id", false);
 
         expect(result.success).toBe(true);
-        expect(result.message).toBe("<user_id> voted to skip trackName");
+        expect(result.message).toBe("<@user_id> voted to skip trackName");
     });
 
     test("Should return a message if some votes passed on a group", async () => {
@@ -345,7 +345,7 @@ describe("Votes.skipCurrent()", () => {
         const result = await votes.skipCurrent("user_id", true);
 
         expect(result.success).toBe(true);
-        expect(result.message).toBe("<user_id> voted to skip 2 track(s) from groupName. Now skipping 1 track(s)");
+        expect(result.message).toBe("<@user_id> voted to skip 2 track(s) from groupName. Now skipping 1 track(s)");
     });
 
     test("Should return a message if the vote passed on a track", async () => {
@@ -365,6 +365,6 @@ describe("Votes.skipCurrent()", () => {
         const result = await votes.skipCurrent("user_id", false);
 
         expect(result.success).toBe(true);
-        expect(result.message).toBe("<user_id> voted to skip trackName. Now skipping");
+        expect(result.message).toBe("<@user_id> voted to skip trackName. Now skipping");
     });
 });

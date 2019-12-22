@@ -1,6 +1,7 @@
 {
     "eslint.enable": true,
     "files.exclude": {
+        ".git/**": true,
         "lib/**/*.js": true,
         "**/__mocks__/*.js": true,
         "index.js": true,
