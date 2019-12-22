@@ -1,5 +1,6 @@
 node_modules/
 /lib/**.js
+__mocks__/**.js
 /index.js
 **.js.map
 .env
