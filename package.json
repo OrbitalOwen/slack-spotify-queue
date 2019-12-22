@@ -24,7 +24,8 @@
         "pretty-ms": "^5.1.0",
         "request": "^2.88.0",
         "seratch-slack-types": "^0.3.6",
-        "spotify-web-api-node": "^4.0.0"
+        "spotify-web-api-node": "^4.0.0",
+        "winston": "^3.2.1"
     },
     "devDependencies": {
         "@types/jest": "^24.0.23",

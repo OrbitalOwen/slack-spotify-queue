@@ -1,4 +1,5 @@
 // A safe interface for searching functionality
+import winston from "winston";
 
 import { Spotify, ISearchResult } from "./Spotify";
 import { Config } from "./Config";
@@ -65,7 +66,7 @@ export class SearchHandler {
                     type: "broadcast"
                 };
             } catch (error) {
-                console.error(error);
+                winston.error("Error queueing from search result", { error });
                 return { success: false, message: "Error when queueing", type: "dm" };
             }
         };
@@ -76,7 +77,7 @@ export class SearchHandler {
         try {
             results = await this.spotify.search(query);
         } catch (error) {
-            console.error(error);
+            winston.error("Error performing search", { error });
             return { success: false, message: "Error when searching" };
         }
         results = results.slice(0, this.optionEmojis.length);

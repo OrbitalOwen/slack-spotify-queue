@@ -3,6 +3,8 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import express from "express";
 import openUrl from "open";
+import winston from "winston";
+
 import { Config } from "./Config";
 import getSpotifyObjectName from "./getSpotifyObjectName";
 
@@ -97,7 +99,9 @@ export class Spotify {
                 expressServer = expressApp.listen(+configData.AUTH_PORT);
 
                 const authorizeURL = spotify.webApi.createAuthorizeURL(SCOPES, "");
-                openUrl(authorizeURL).catch(console.error);
+                openUrl(authorizeURL).catch((error) => {
+                    winston.error("Error creating spotify authorization URL.", { error });
+                });
             } else {
                 // We already have an auth code stored
                 spotify.webApi.setAccessToken(configData.SPOTIFY_ACCESS_TOKEN);
@@ -167,7 +171,7 @@ export class Spotify {
             throw new Error("Device is not valid");
         }
         this.deviceId = deviceId;
-        console.log(`Set device to ${deviceId}`);
+        winston.info("Set deviceId", { deviceId });
         await this.webApi.transferMyPlayback({
             device_ids: [deviceId]
         });

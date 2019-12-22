@@ -1,4 +1,5 @@
 // Handles the queuing and playback of tracks
+import winston from "winston";
 
 import { Spotify, ITrackEntry, IGroupEntry } from "./Spotify";
 import { Config } from "./Config";
@@ -131,8 +132,8 @@ export class Queue {
     private async checkIfTrackOverWithRetry(queueEntry: IQueueEntry) {
         const queue = this;
         await this.advanceTrackIfOver(queueEntry).catch((error) => {
-            console.error(error);
-            console.log("Error when calling advanceTrackIfOver, retrying in 2 seconds");
+            winston.error(error);
+            winston.info("Error when calling advanceTrackIfOver, retrying in 2 seconds");
             setTimeout(async () => {
                 await queue.checkIfTrackOverWithRetry(queueEntry);
             }, 2000);

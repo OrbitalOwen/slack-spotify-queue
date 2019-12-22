@@ -1,4 +1,5 @@
 // A safe interface for playback actions
+import winston from "winston";
 
 import { Config } from "./Config";
 import { Queue, IQueueEntry } from "./Queue";
@@ -48,7 +49,7 @@ export class Controller {
                 message
             };
         } catch (error) {
-            console.error(error);
+            winston.error("Error adding resource", { error });
             return {
                 success: false,
                 message: "Error adding resource"
@@ -81,7 +82,7 @@ export class Controller {
                 message: `<@${userId}> hit play, now playing ${queueEntry.name}`
             };
         } catch (error) {
-            console.error(error);
+            winston.error("Error playing track", { error });
             return {
                 success: false,
                 message: getPlayerErrorMessage("Error playing track", error)
@@ -98,7 +99,7 @@ export class Controller {
                     message: "Queue not playing, stopped Spotify anyway"
                 };
             } catch (error) {
-                console.error(error);
+                winston.error("Error stopping spotify", { error });
                 return {
                     success: false,
                     message: getPlayerErrorMessage("Error stopping spotify", error)
@@ -138,7 +139,7 @@ export class Controller {
                 message: `<@${userId}> set volume to ${newVolume}%`
             };
         } catch (error) {
-            console.error(error);
+            winston.error("Error changing volume", { error });
             return {
                 success: false,
                 message: getPlayerErrorMessage("Error changing volume", error)

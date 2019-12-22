@@ -1,3 +1,5 @@
+import winston from "winston";
+
 import { Config } from "./lib/Config";
 import { CommandHandler } from "./lib/CommandHandler";
 import { Controller } from "./lib/Controller";
@@ -27,11 +29,14 @@ async function start() {
     await bot.listen();
 }
 
-console.log("Authorizing spotify");
+require("configureLogger");
+
+winston.info("Starting app");
+winston.info("Authenticating slack and spotify");
 start()
     .then(() => {
-        console.log("Spotify and slack authenticated");
+        winston.info("Spotify and slack authenticated");
     })
     .catch((error) => {
-        console.error(error);
+        winston.error(error);
     });

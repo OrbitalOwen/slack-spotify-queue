@@ -1,4 +1,5 @@
 // Handles incoming and outgoing slack messages and reactions
+import winston from "winston";
 
 import { Slack, ISlackMessage } from "./Slack";
 import { CommandHandler } from "./CommandHandler";
@@ -21,9 +22,11 @@ export class Bot {
 
         const bot = this;
         this.slack.onMessage(async (message) => {
-            const response = await bot.commandHandler.processCommand(message.user, message.text);
-            await bot.processResponse(message.channel, response);
-            await bot.sendStatus(message, response);
+            if (message.text) {
+                const response = await bot.commandHandler.processCommand(message.user, message.text);
+                await bot.processResponse(message.channel, response);
+                await bot.sendStatus(message, response);
+            }
         });
     }
 
@@ -31,7 +34,7 @@ export class Bot {
         try {
             await this.slack.reactTo(message, response.success ? "heavy_check_mark" : "x");
         } catch (error) {
-            console.error(`Error reacting to message ${error}`);
+            winston.error("Error reacting to message", { error });
         }
     }
 
@@ -65,7 +68,7 @@ export class Bot {
                         this.listenToOptions(response, message);
                     }
                 } catch (error) {
-                    console.error(`Error sending message ${error}`);
+                    winston.error("Error sending message", { error });
                 }
             }
         }

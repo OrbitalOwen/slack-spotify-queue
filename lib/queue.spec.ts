@@ -658,7 +658,6 @@ describe("checkIfTrackOverWithRetry()", () => {
     });
 
     test("Should retry after 2 seconds if there is an error checking if the track is over", async () => {
-        jest.spyOn(console, "error").mockImplementation(() => {});
         const queue = makeQueue();
         const checkTrackSpy = jest.spyOn(queue as any, "checkIfTrackOverWithRetry");
         (queue as any).playing = true;

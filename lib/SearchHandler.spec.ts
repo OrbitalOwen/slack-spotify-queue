@@ -50,7 +50,6 @@ function makeHandler() {
 
 describe("searchHandler.search()", () => {
     test("Should fail if the search failed", async () => {
-        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedSpotify.prototype.search.mockRejectedValue(undefined);
 
         const handler = makeHandler();
@@ -122,7 +121,6 @@ React to queue`);
     });
 
     test("Should return a callback that fails if there's an error adding the result", async () => {
-        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.add.mockRejectedValue(undefined);
 
         const handler = makeHandler();

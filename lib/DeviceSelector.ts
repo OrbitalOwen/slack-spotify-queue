@@ -1,4 +1,5 @@
 // A safe interface for device selection
+import winston from "winston";
 
 import { Spotify, IDevice } from "./Spotify";
 import { Config } from "./Config";
@@ -33,7 +34,7 @@ export class DeviceSelector {
                 await spotify.setDeviceId(device.id);
                 return { success: true, message: `<@${creatorId}> set device to ${device.name}`, type: "broadcast" };
             } catch (error) {
-                console.error(error);
+                winston.error("Error setting device", { error });
                 return { success: false, message: `Error setting device to ${device.name}`, type: "dm" };
             }
         };
@@ -44,7 +45,7 @@ export class DeviceSelector {
         try {
             devices = await this.spotify.getAvailableDevices();
         } catch (error) {
-            console.error(error);
+            winston.error("Error getting devices", { error });
             return { success: false, message: "Error getting devices" };
         }
         devices = devices.slice(0, this.optionEmojis.length);

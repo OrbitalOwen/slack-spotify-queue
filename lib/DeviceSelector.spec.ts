@@ -35,7 +35,6 @@ function makeSelector() {
 
 describe("deviceSelector.promptSelection()", () => {
     test("If spotify could not get available devices, should fail", async () => {
-        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedSpotify.prototype.getAvailableDevices.mockRejectedValue(undefined);
 
         const selector = makeSelector();
@@ -93,7 +92,6 @@ React to select device`);
     });
 
     test("Should return a callback that fails if setting the device errors", async () => {
-        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedSpotify.prototype.setDeviceId.mockRejectedValue(undefined);
 
         const selector = makeSelector();

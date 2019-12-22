@@ -126,7 +126,6 @@ describe("Controller.add()", () => {
     });
 
     test("If adding is not succesfull, should return a failiure message", async () => {
-        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.add.mockRejectedValue(undefined);
         const controller = makeController();
         const result = await controller.add("creator_id", "resource");
@@ -212,7 +211,6 @@ describe("Controller.play()", () => {
             durationMs: 100,
             isPlayable: true
         });
-        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.resume.mockRejectedValue(undefined);
         const result = await controller.play("");
         expect(result.success).toBe(false);
@@ -231,7 +229,6 @@ describe("Controller.pause()", () => {
     test("If unable to stop spotify, should fail", async () => {
         const controller = makeController();
         mockedQueue.prototype.isPlaying.mockReturnValue(false);
-        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.stop.mockRejectedValue(undefined);
         const result = await controller.pause("");
         expect(result.success).toBe(false);
@@ -249,7 +246,6 @@ describe("Controller.pause()", () => {
     test("If unable to pause the queue, should fail", async () => {
         const controller = makeController();
         mockedQueue.prototype.isPlaying.mockReturnValue(true);
-        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedQueue.prototype.pause.mockRejectedValue(undefined);
         const result = await controller.pause("");
         expect(result.success).toBe(false);
@@ -332,7 +328,6 @@ describe("Controller.changeVolume()", () => {
 
     test("Should fail if not successful", async () => {
         const controller = makeController();
-        jest.spyOn(console, "error").mockImplementation(() => {});
         mockedSpotify.prototype.setVolume.mockRejectedValue(undefined);
         const result = await controller.changeVolume("", true);
         expect(result.success).toBe(false);

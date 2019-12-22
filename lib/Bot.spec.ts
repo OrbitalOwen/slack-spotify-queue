@@ -1,4 +1,5 @@
 import { mocked } from "ts-jest/utils";
+import winston from "winston";
 
 import { Slack, ISlackMessage, ISlackReaction } from "./Slack";
 import { CommandHandler } from "./CommandHandler";
@@ -423,7 +424,7 @@ describe("listen()", () => {
     });
 
     test("Should log an error if sending a message fails", async () => {
-        const errorMock = jest.spyOn(console, "error").mockImplementation(() => {});
+        const errorMock = jest.spyOn(winston, "error");
 
         mockedSlack.prototype.sendMessage.mockRejectedValue(undefined);
         mockedCommandHandler.prototype.processCommand.mockResolvedValue({
@@ -445,7 +446,7 @@ describe("listen()", () => {
     });
 
     test("Should log an error if reacting fails", async () => {
-        const errorMock = jest.spyOn(console, "error").mockImplementation(() => {});
+        const errorMock = jest.spyOn(winston, "error");
 
         mockedSlack.prototype.reactTo.mockRejectedValue(undefined);
         mockedCommandHandler.prototype.processCommand.mockResolvedValue({

@@ -1,6 +1,8 @@
 node_modules/
-**.js
+/lib/**.js
+/index.js
 **.js.map
 .env
-config.json
+/config.json
 coverage/
+logs/
