@@ -112,7 +112,7 @@ export class Queue {
         if (!this.playing) {
             return;
         }
-        if (this.queueId !== queueEntry.queueId) {
+        if (this.currentEntry && this.currentEntry.queueId !== queueEntry.queueId) {
             return;
         }
         if (playbackInfo.trackUri !== queueEntry.uri) {
@@ -132,8 +132,7 @@ export class Queue {
     private async checkIfTrackOverWithRetry(queueEntry: IQueueEntry) {
         const queue = this;
         await this.advanceTrackIfOver(queueEntry).catch((error) => {
-            winston.error(error);
-            winston.info("Error when calling advanceTrackIfOver, retrying in 2 seconds");
+            winston.error("Error advancing track, retrying in 2 seconds", { error });
             setTimeout(async () => {
                 await queue.checkIfTrackOverWithRetry(queueEntry);
             }, 2000);
@@ -143,7 +142,6 @@ export class Queue {
     public async nextTrack(): Promise<IQueueEntry | undefined> {
         const queueEntry = this.queue[0];
         if (!queueEntry) {
-            await this.spotify.pause();
             this.currentEntry = null;
             this.playing = false;
             return;

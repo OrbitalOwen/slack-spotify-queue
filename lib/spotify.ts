@@ -117,6 +117,7 @@ export class Spotify {
     }
 
     public async play(uri: string, positionMs?: number): Promise<void> {
+        winston.debug("Playing resource", { uri });
         await this.refreshTokenIfRequired();
         await this.webApi.setRepeat({
             device_id: this.deviceId,

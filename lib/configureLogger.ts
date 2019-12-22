@@ -1,4 +1,4 @@
-import winston from "winston";
+import winston, { format } from "winston";
 const NODE_ENV = process.env.NODE_ENV;
 
 if (NODE_ENV === "test") {
@@ -19,7 +19,10 @@ if (NODE_ENV === "test") {
                     winston.format.json()
                 )
             }),
-            new winston.transports.Console()
+            new winston.transports.Console({
+                level: "debug",
+                format: winston.format.combine(winston.format.simple())
+            })
         ]
     });
 }

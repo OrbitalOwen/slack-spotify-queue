@@ -432,7 +432,7 @@ describe("Queue.nextTrack()", () => {
 
         const currentEntry = queue.getCurrentEntry();
         const isPlaying = queue.isPlaying();
-        expect(mockedSpotify.prototype.pause).toHaveBeenCalled();
+
         expect(currentEntry).toBe(undefined);
         expect(isPlaying).toBe(false);
     });
@@ -533,12 +533,16 @@ describe("checkIfTrackOverWithRetry()", () => {
         expect(nextTrackSpy).toHaveBeenCalledTimes(0);
     });
 
-    test("Should return if the queueId has changed", async () => {
+    test("Should return if the queue has moved on", async () => {
         const queue = makeQueue();
         const nextTrackSpy = jest.spyOn(queue, "nextTrack");
         const checkTrackSpy = jest.spyOn(queue as any, "checkIfTrackOverWithRetry");
         (queue as any).playing = true;
-        (queue as any).queueId = 1;
+        (queue as any).currentEntry = {
+            queueId: 3,
+            uri: "track_uri",
+            durationMs: 0
+        };
         await (queue as any).checkIfTrackOverWithRetry({
             queueId: 2,
             uri: "track_uri",
