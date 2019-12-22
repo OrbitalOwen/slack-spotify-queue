@@ -278,8 +278,7 @@ describe("Spotify.setDeviceId()", () => {
         await spotify.setDeviceId("VALID_DEVICE_ID");
 
         expect(mockedSpotifyWebApi.prototype.transferMyPlayback.mock.calls[0][0]).toEqual({
-            device_ids: ["VALID_DEVICE_ID"],
-            play: false
+            device_ids: ["VALID_DEVICE_ID"]
         });
     });
 
