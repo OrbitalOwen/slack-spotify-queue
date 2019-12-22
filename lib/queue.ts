@@ -119,13 +119,24 @@ export class Queue {
         }
         const timeLeft = playbackInfo.progressMs ? queueEntry.durationMs - playbackInfo.progressMs : 0;
         if (timeLeft <= 0) {
-            await this.nextTrack().catch(console.error);
+            await this.nextTrack();
         } else {
             const queue = this;
             setTimeout(async () => {
-                await queue.advanceTrackIfOver(queueEntry).catch(console.error);
+                await queue.checkIfTrackOverWithRetry(queueEntry);
             }, Math.max(1000, timeLeft));
         }
+    }
+
+    private async checkIfTrackOverWithRetry(queueEntry: IQueueEntry) {
+        const queue = this;
+        await this.advanceTrackIfOver(queueEntry).catch((error) => {
+            console.error(error);
+            console.log("Error when calling advanceTrackIfOver, retrying in 2 seconds");
+            setTimeout(async () => {
+                await queue.checkIfTrackOverWithRetry(queueEntry);
+            }, 2000);
+        });
     }
 
     public async nextTrack(): Promise<IQueueEntry | undefined> {
@@ -142,7 +153,7 @@ export class Queue {
         this.playing = true;
         const queue = this;
         setTimeout(async () => {
-            await queue.advanceTrackIfOver(queueEntry).catch(console.error);
+            await queue.checkIfTrackOverWithRetry(queueEntry);
         }, queueEntry.durationMs);
         return queueEntry;
     }

@@ -488,7 +488,7 @@ describe("Queue.nextTrack()", () => {
         });
     });
 
-    test("Should call advanceTrackIfRequired with the queueEntry after the track's duration", async () => {
+    test("Should call advanceTrackIfOver with the queueEntry after the track's duration", async () => {
         mockedSpotify.prototype.getPlaybackInfo.mockResolvedValue({
             isPlaying: true,
             progressMs: 0,
@@ -506,10 +506,10 @@ describe("Queue.nextTrack()", () => {
     });
 });
 
-describe("advanceTrackIfOver()", () => {
+describe("checkIfTrackOverWithRetry()", () => {
     test("Should get the current playback status", async () => {
         const queue = makeQueue();
-        await (queue as any).advanceTrackIfOver({
+        await (queue as any).checkIfTrackOverWithRetry({
             queueId: 1,
             uri: "track_uri",
             durationMs: 0
@@ -520,39 +520,39 @@ describe("advanceTrackIfOver()", () => {
     test("Should return if queue is not currently playing", async () => {
         const queue = makeQueue();
         const nextTrackSpy = jest.spyOn(queue, "nextTrack");
-        const advanceTrackSpy = jest.spyOn(queue as any, "advanceTrackIfOver");
+        const checkTrackSpy = jest.spyOn(queue as any, "checkIfTrackOverWithRetry");
         (queue as any).playing = false;
         (queue as any).queueId = 1;
-        await (queue as any).advanceTrackIfOver({
+        await (queue as any).checkIfTrackOverWithRetry({
             queueId: 1,
             uri: "track_uri",
             durationMs: 0
         });
         jest.runAllTimers();
-        expect(advanceTrackSpy).toHaveBeenCalledTimes(1);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(1);
         expect(nextTrackSpy).toHaveBeenCalledTimes(0);
     });
 
     test("Should return if the queueId has changed", async () => {
         const queue = makeQueue();
         const nextTrackSpy = jest.spyOn(queue, "nextTrack");
-        const advanceTrackSpy = jest.spyOn(queue as any, "advanceTrackIfOver");
+        const checkTrackSpy = jest.spyOn(queue as any, "checkIfTrackOverWithRetry");
         (queue as any).playing = true;
         (queue as any).queueId = 1;
-        await (queue as any).advanceTrackIfOver({
+        await (queue as any).checkIfTrackOverWithRetry({
             queueId: 2,
             uri: "track_uri",
             durationMs: 0
         });
         jest.runAllTimers();
-        expect(advanceTrackSpy).toHaveBeenCalledTimes(1);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(1);
         expect(nextTrackSpy).toHaveBeenCalledTimes(0);
     });
 
     test("Should return if spotify is playing a different track", async () => {
         const queue = makeQueue();
         const nextTrackSpy = jest.spyOn(queue, "nextTrack");
-        const advanceTrackSpy = jest.spyOn(queue as any, "advanceTrackIfOver");
+        const checkTrackSpy = jest.spyOn(queue as any, "checkIfTrackOverWithRetry");
         (queue as any).playing = true;
         (queue as any).queueId = 1;
         mockedSpotify.prototype.getPlaybackInfo.mockResolvedValue({
@@ -560,20 +560,20 @@ describe("advanceTrackIfOver()", () => {
             trackUri: "a_different_track_uri",
             progressMs: 100
         });
-        await (queue as any).advanceTrackIfOver({
+        await (queue as any).checkIfTrackOverWithRetry({
             queueId: 1,
             uri: "track_uri",
             durationMs: 100
         });
         jest.runAllTimers();
-        expect(advanceTrackSpy).toHaveBeenCalledTimes(1);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(1);
         expect(nextTrackSpy).toHaveBeenCalledTimes(0);
     });
 
     test("If the track has ended, should play the next track", async () => {
         const queue = makeQueue();
         const nextTrackSpy = jest.spyOn(queue, "nextTrack");
-        const advanceTrackSpy = jest.spyOn(queue as any, "advanceTrackIfOver");
+        const checkTrackSpy = jest.spyOn(queue as any, "checkIfTrackOverWithRetry");
         (queue as any).playing = true;
         (queue as any).queueId = 1;
         mockedSpotify.prototype.getPlaybackInfo.mockResolvedValue({
@@ -581,20 +581,20 @@ describe("advanceTrackIfOver()", () => {
             trackUri: "track_uri",
             progressMs: 100
         });
-        await (queue as any).advanceTrackIfOver({
+        await (queue as any).checkIfTrackOverWithRetry({
             queueId: 1,
             uri: "track_uri",
             durationMs: 100
         });
         jest.runAllTimers();
-        expect(advanceTrackSpy).toHaveBeenCalledTimes(1);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(1);
         expect(nextTrackSpy).toHaveBeenCalledTimes(1);
     });
 
     test("If the track has not ended, should try again after the remaining duration has elapsed", async () => {
         const queue = makeQueue();
         const nextTrackSpy = jest.spyOn(queue, "nextTrack");
-        const advanceTrackSpy = jest.spyOn(queue as any, "advanceTrackIfOver");
+        const checkTrackSpy = jest.spyOn(queue as any, "checkIfTrackOverWithRetry");
         (queue as any).playing = true;
         (queue as any).queueId = 1;
         mockedSpotify.prototype.getPlaybackInfo.mockResolvedValue({
@@ -602,22 +602,22 @@ describe("advanceTrackIfOver()", () => {
             trackUri: "track_uri",
             progressMs: 8000
         });
-        await (queue as any).advanceTrackIfOver({
+        await (queue as any).checkIfTrackOverWithRetry({
             queueId: 1,
             uri: "track_uri",
             durationMs: 10000
         });
-        expect(advanceTrackSpy).toHaveBeenCalledTimes(1);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(1);
         jest.advanceTimersByTime(1999);
         expect(nextTrackSpy).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(1);
-        expect(advanceTrackSpy).toHaveBeenCalledTimes(2);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(2);
     });
 
     test("If the track has not ended, should wait at least 1000ms before checking again", async () => {
         const queue = makeQueue();
         const nextTrackSpy = jest.spyOn(queue, "nextTrack");
-        const advanceTrackSpy = jest.spyOn(queue as any, "advanceTrackIfOver");
+        const checkTrackSpy = jest.spyOn(queue as any, "checkIfTrackOverWithRetry");
         (queue as any).playing = true;
         (queue as any).queueId = 1;
         mockedSpotify.prototype.getPlaybackInfo.mockResolvedValue({
@@ -625,36 +625,58 @@ describe("advanceTrackIfOver()", () => {
             trackUri: "track_uri",
             progressMs: 99
         });
-        await (queue as any).advanceTrackIfOver({
+        await (queue as any).checkIfTrackOverWithRetry({
             queueId: 1,
             uri: "track_uri",
             durationMs: 100
         });
-        expect(advanceTrackSpy).toHaveBeenCalledTimes(1);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(1);
         expect(nextTrackSpy).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(1);
-        expect(advanceTrackSpy).toHaveBeenCalledTimes(1);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(1);
         jest.advanceTimersByTime(1000);
-        expect(advanceTrackSpy).toHaveBeenCalledTimes(2);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(2);
     });
 
     test("If no progress is given by spotify, should assume the track is over", async () => {
         const queue = makeQueue();
         const nextTrackSpy = jest.spyOn(queue, "nextTrack");
-        const advanceTrackSpy = jest.spyOn(queue as any, "advanceTrackIfOver");
+        const checkTrackSpy = jest.spyOn(queue as any, "checkIfTrackOverWithRetry");
         (queue as any).playing = true;
         (queue as any).queueId = 1;
         mockedSpotify.prototype.getPlaybackInfo.mockResolvedValue({
             isPlaying: true,
             trackUri: "track_uri"
         });
-        await (queue as any).advanceTrackIfOver({
+        await (queue as any).checkIfTrackOverWithRetry({
             queueId: 1,
             uri: "track_uri",
             durationMs: 100
         });
-        expect(advanceTrackSpy).toHaveBeenCalledTimes(1);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(1);
         expect(nextTrackSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("Should retry after 2 seconds if there is an error checking if the track is over", async () => {
+        jest.spyOn(console, "error").mockImplementation(() => {});
+        const queue = makeQueue();
+        const checkTrackSpy = jest.spyOn(queue as any, "checkIfTrackOverWithRetry");
+        (queue as any).playing = true;
+        (queue as any).queueId = 1;
+        mockedSpotify.prototype.getPlaybackInfo.mockRejectedValue(undefined);
+        await (queue as any).checkIfTrackOverWithRetry({
+            queueId: 1,
+            uri: "track_uri",
+            durationMs: 100
+        });
+        mockedSpotify.prototype.getPlaybackInfo.mockResolvedValue({
+            isPlaying: true,
+            trackUri: "track_uri"
+        });
+        jest.advanceTimersByTime(2001);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(2);
+        jest.advanceTimersByTime(2001);
+        expect(checkTrackSpy).toHaveBeenCalledTimes(2);
     });
 });
 
