@@ -1,8 +1,8 @@
 diff --git a/node_modules/spotify-web-api-node/src/http-manager.js b/node_modules/spotify-web-api-node/src/http-manager.js
-index ce86be1..d9350cf 100644
+index ce86be1..18af322 100644
 --- a/node_modules/spotify-web-api-node/src/http-manager.js
 +++ b/node_modules/spotify-web-api-node/src/http-manager.js
-@@ -31,24 +31,39 @@ var _getParametersFromRequest = function(request) {
+@@ -31,24 +31,37 @@ var _getParametersFromRequest = function(request) {
  /* Create an error object from an error returned from the Web API */
  var _getErrorObject = function(defaultMessage, err) {
    var errorObject;
@@ -16,8 +16,6 @@ index ce86be1..d9350cf 100644
 -    /* jshint ignore:end */
 -  } else if (typeof err === 'string') {
 -    // Serialized JSON error
-+
-+  console.log(err.error.response.body)
 +
 +  if (typeof err.error === 'object') {
      try {
@@ -60,18 +58,29 @@ index ce86be1..d9350cf 100644
    }
  
 diff --git a/node_modules/spotify-web-api-node/src/spotify-web-api.js b/node_modules/spotify-web-api-node/src/spotify-web-api.js
-index b79a5f1..41aadab 100644
+index b79a5f1..367b767 100644
 --- a/node_modules/spotify-web-api-node/src/spotify-web-api.js
 +++ b/node_modules/spotify-web-api-node/src/spotify-web-api.js
-@@ -1081,7 +1081,7 @@ SpotifyWebApi.prototype = {
+@@ -1081,8 +1081,8 @@ SpotifyWebApi.prototype = {
        .withPath('/v1/me/player')
        .withHeaders({ 'Content-Type': 'application/json' })
        .withBodyParameters({
 -        device_ids: options.deviceIds,
+-        play: !!options.play
 +        device_ids: options.device_ids,
-         play: !!options.play
++        play: options.play
        })
        .build()
+       .execute(HttpManager.put, callback);
+@@ -1103,7 +1103,7 @@ SpotifyWebApi.prototype = {
+       ? { device_id: _options.device_id }
+       : null;
+     var postData = {};
+-    ['context_uri', 'uris', 'offset'].forEach(function(field) {
++    ['context_uri', 'uris', 'offset', 'position_ms'].forEach(function(field) {
+       if (field in _options) {
+         postData[field] = _options[field];
+       }
 @@ -1206,7 +1206,8 @@ SpotifyWebApi.prototype = {
      return WebApiRequest.builder(this.getAccessToken())
        .withPath('/v1/me/player/repeat')

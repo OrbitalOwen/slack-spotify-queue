@@ -169,8 +169,7 @@ export class Spotify {
         this.deviceId = deviceId;
         console.log(`Set device to ${deviceId}`);
         await this.webApi.transferMyPlayback({
-            device_ids: [deviceId],
-            play: false
+            device_ids: [deviceId]
         });
     }
 
