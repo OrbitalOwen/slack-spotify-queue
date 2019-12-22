@@ -29,7 +29,7 @@ async function start() {
     await bot.listen();
 }
 
-require("configureLogger");
+require("./lib/configureLogger");
 
 winston.info("Starting app");
 winston.info("Authenticating slack and spotify");
