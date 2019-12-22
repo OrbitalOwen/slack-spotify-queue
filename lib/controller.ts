@@ -5,6 +5,13 @@ import { Queue, IQueueEntry } from "./Queue";
 import { identifySpotifyResource } from "./identifySpotifyResource";
 import { IActionResult } from "./CommandTypes";
 
+function getPlayerErrorMessage(prefix: string, error: any) {
+    if (typeof error === "object" && error.message) {
+        return `${prefix}: \`${error.message}\``;
+    }
+    return prefix;
+}
+
 export class Controller {
     private config: Config;
     private queue: Queue;
@@ -77,7 +84,7 @@ export class Controller {
             console.error(error);
             return {
                 success: false,
-                message: "Error playing track"
+                message: getPlayerErrorMessage("Error playing track", error)
             };
         }
     }
@@ -94,7 +101,7 @@ export class Controller {
                 console.error(error);
                 return {
                     success: false,
-                    message: "Error when stopping Spotify"
+                    message: getPlayerErrorMessage("Error stopping spotify", error)
                 };
             }
         }
@@ -102,10 +109,9 @@ export class Controller {
             await this.queue.pause();
             return { success: true, message: `<${userId}> hit pause` };
         } catch (error) {
-            console.error(error);
             return {
                 success: false,
-                message: "Error when pausing Spotify"
+                message: getPlayerErrorMessage("Error pausing spotify", error)
             };
         }
     }
@@ -135,7 +141,7 @@ export class Controller {
             console.error(error);
             return {
                 success: false,
-                message: "Error when setting volume"
+                message: getPlayerErrorMessage("Error changing volume", error)
             };
         }
     }
