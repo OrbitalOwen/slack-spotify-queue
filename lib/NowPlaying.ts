@@ -28,12 +28,12 @@ export class NowPlaying {
 
         const shortQueue = queue.slice(0, 10);
         for (const [index, entry] of Object.entries(shortQueue)) {
-            outputString += `\n${+index + 1}: ${getEntryString(entry)}`;
+            outputString += `\n ${+index + 1}: ${getEntryString(entry)}`;
         }
 
         const tracksLeft = queue.length - shortQueue.length;
         if (tracksLeft > 0) {
-            outputString += `\n+${tracksLeft} more`;
+            outputString += `\n_+${tracksLeft} more_`;
         }
 
         return outputString;
