@@ -201,14 +201,20 @@ export class Queue {
     }
 
     public async resume(): Promise<IQueueEntry> {
+        const queue = this;
         if (this.playing) {
             throw new Error("Cannot resume. Already playing.");
         }
         if (!this.currentEntry) {
             throw new Error("Cannot resume. No current track.");
         }
-        await this.spotify.play(this.currentEntry.uri, this.currentEntry.pausedProgressMs);
+        const pausedProgressMs = this.currentEntry.pausedProgressMs ? this.currentEntry.pausedProgressMs : 0;
+        const queueEntry = this.currentEntry;
+        await this.spotify.play(queueEntry.uri, pausedProgressMs);
         this.playing = true;
+        setTimeout(async () => {
+            await queue.checkIfTrackOverWithRetry(queueEntry);
+        }, queueEntry.durationMs - pausedProgressMs);
         return this.currentEntry;
     }
 

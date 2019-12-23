@@ -951,6 +951,33 @@ describe("Queue.resume()", () => {
         expect(queue.isPlaying()).toBe(true);
         expect(returnedEntry).toEqual(entry);
     });
+
+    test("Should call advanceTrackIfOver with the queueEntry after the track's duration", async () => {
+        mockedSpotify.prototype.getPlaybackInfo.mockResolvedValue({
+            isPlaying: true,
+            progressMs: 0,
+            trackUri: ""
+        });
+
+        const queue = makeQueue();
+        (queue as any).playing = false;
+        const entry = {
+            name: "",
+            uri: "track_uri",
+            durationMs: 100,
+            creatorId: "",
+            queueId: 1,
+            groupId: 1,
+            pausedProgressMs: 80
+        };
+        (queue as any).currentEntry = entry;
+        const advanceTrackSpy = jest.spyOn(queue as any, "advanceTrackIfOver");
+        const queueEntry = await queue.resume();
+        jest.advanceTimersByTime(21);
+        await Promise.resolve();
+        expect(advanceTrackSpy).toHaveBeenCalled();
+        expect(advanceTrackSpy.mock.calls[0][0]).toEqual(queueEntry);
+    });
 });
 
 describe("Queue.clear()", () => {
