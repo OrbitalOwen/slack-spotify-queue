@@ -14,12 +14,16 @@ export class DeviceSelector {
         this.spotify = spotify;
     }
 
-    private getOutputString(devices: IDevice[]): string {
-        let outputString = "Available devices:";
+    private getOutputString(devices: IDevice[], currentDevice: IDevice | undefined): string {
+        let outputString = "";
+        if (currentDevice) {
+            outputString += `*Current device:* ${currentDevice.name}\n`;
+        }
+        outputString += "*Available devices:*\n";
         for (const [index, device] of Object.entries(devices)) {
             outputString += `\n:${this.optionEmojis[index]}: ${device.name}`;
         }
-        outputString += "\nReact to select device";
+        outputString += "\n\nReact to select device";
         return outputString;
     }
 
@@ -31,7 +35,7 @@ export class DeviceSelector {
                 return { success: false, message: `:${this.optionEmojis[index]}: is not a valid response`, type: "dm" };
             }
             try {
-                await spotify.setDeviceId(device.id);
+                await spotify.setDevice(device);
                 return { success: true, message: `<@${creatorId}> set device to ${device.name}`, type: "broadcast" };
             } catch (error) {
                 winston.error("Error setting device", { error });
@@ -48,8 +52,9 @@ export class DeviceSelector {
             winston.error("Error getting devices", { error });
             return { success: false, message: "Error getting devices" };
         }
+        const currentDevice = this.spotify.getCurrentDevice();
         devices = devices.slice(0, this.optionEmojis.length);
-        const message = this.getOutputString(devices);
+        const message = this.getOutputString(devices, currentDevice);
         const callback = this.getOptionCallback(devices);
         return {
             success: true,

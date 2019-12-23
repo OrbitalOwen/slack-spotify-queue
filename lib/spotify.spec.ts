@@ -269,13 +269,13 @@ describe("Spotify.authorize()", () => {
 
 describe("Spotify.setDeviceId()", () => {
     validateAuthenticatesWhen(async (spotify) => {
-        await spotify.setDeviceId("VALID_DEVICE_ID");
+        await spotify.setDevice({ name: "name", id: "VALID_DEVICE_ID" });
     });
 
     test("Should transfer playback if a valid, unrestricted deviceId is given", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
-        await spotify.setDeviceId("VALID_DEVICE_ID");
+        await spotify.setDevice({ name: "name", id: "VALID_DEVICE_ID" });
 
         expect(mockedSpotifyWebApi.prototype.transferMyPlayback.mock.calls[0][0]).toEqual({
             device_ids: ["VALID_DEVICE_ID"]
@@ -285,14 +285,14 @@ describe("Spotify.setDeviceId()", () => {
     test("Should reject with an error if an invalid deviceId is given", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
-        await expect(spotify.setDeviceId("INVALID_DEVICE_ID")).rejects.toEqual(expect.any(Error));
+        await expect(spotify.setDevice({ name: "name", id: "INVALID_DEVICE_ID" })).rejects.toEqual(expect.any(Error));
     });
 
     test("Should reject with an error if a restricted deviceId is given", async () => {
         mockSpotifyDeviceResponse([{ id: "VALID_DEVICE_ID", is_restricted: true }]);
         const config = new Config();
         const spotify = new Spotify(config);
-        await expect(spotify.setDeviceId("VALID_DEVICE_ID")).rejects.toEqual(expect.any(Error));
+        await expect(spotify.setDevice({ name: "name", id: "VALID_DEVICE_ID" })).rejects.toEqual(expect.any(Error));
     });
 });
 
@@ -304,7 +304,7 @@ describe("Spotify.setVolume()", () => {
     test("Should set the volume, with the correct deviceId", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
-        await spotify.setDeviceId("VALID_DEVICE_ID");
+        await spotify.setDevice({ name: "name", id: "VALID_DEVICE_ID" });
         await spotify.setVolume(37);
 
         expect(mockedSpotifyWebApi.prototype.setVolume.mock.calls[0][0]).toBe(37);
@@ -322,7 +322,7 @@ describe("Spotify.play()", () => {
     test("Should set setRepeat to false, with the correct deviceId", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
-        await spotify.setDeviceId("VALID_DEVICE_ID");
+        await spotify.setDevice({ name: "name", id: "VALID_DEVICE_ID" });
         await spotify.play("spotify_uri");
 
         expect(mockedSpotifyWebApi.prototype.setRepeat.mock.calls[0][0]).toEqual({
@@ -334,7 +334,7 @@ describe("Spotify.play()", () => {
     test("Should set setVolume to the current volume, with the correct deviceId", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
-        await spotify.setDeviceId("VALID_DEVICE_ID");
+        await spotify.setDevice({ name: "name", id: "VALID_DEVICE_ID" });
         await spotify.setVolume(71);
         mockedSpotifyWebApi.prototype.setVolume.mockClear();
         await spotify.play("spotify_uri");
@@ -348,7 +348,7 @@ describe("Spotify.play()", () => {
     test("Should call play with the correct uri, deviceId and positionMs", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
-        await spotify.setDeviceId("VALID_DEVICE_ID");
+        await spotify.setDevice({ name: "name", id: "VALID_DEVICE_ID" });
         await spotify.play("spotify_uri", 101);
 
         expect(mockedSpotifyWebApi.prototype.play.mock.calls[0][0]).toEqual({
@@ -367,7 +367,7 @@ describe("Spotify.pause()", () => {
     test("Should pause, with the correct deviceId", async () => {
         const config = new Config();
         const spotify = new Spotify(config);
-        await spotify.setDeviceId("VALID_DEVICE_ID");
+        await spotify.setDevice({ name: "name", id: "VALID_DEVICE_ID" });
         await spotify.pause();
 
         expect(mockedSpotifyWebApi.prototype.pause.mock.calls[0][0]).toEqual({
@@ -628,5 +628,17 @@ describe("Spotify.getPlaylist()", () => {
             { name: "THE_RIGHT_NAME", uri: "uri_1", durationMs: 1, isPlayable: true },
             { name: "THE_RIGHT_NAME", uri: "uri_2", durationMs: 2, isPlayable: true }
         ]);
+    });
+});
+
+describe("Spotify.getCurrentDevice()", () => {
+    test("Should return the current device", async () => {
+        const config = new Config();
+        const spotify = new Spotify(config);
+
+        const device = { name: "name", id: "VALID_DEVICE_ID" };
+        await spotify.setDevice(device);
+
+        expect(spotify.getCurrentDevice()).toBe(device);
     });
 });

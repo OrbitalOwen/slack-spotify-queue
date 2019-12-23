@@ -48,10 +48,28 @@ describe("deviceSelector.promptSelection()", () => {
         const result = await selector.promptSelection();
 
         expect(result.success).toBe(true);
-        expect(result.message).toBe(`Available devices:
+        expect(result.message).toBe(`*Available devices:*
+
 :one: device1
 :two: device2
 :three: device3
+
+React to select device`);
+    });
+
+    test("The message should show the current device", async () => {
+        mockedSpotify.prototype.getCurrentDevice.mockReturnValue({ name: "currentDevice", id: "id" });
+        const selector = makeSelector();
+        const result = await selector.promptSelection();
+
+        expect(result.success).toBe(true);
+        expect(result.message).toBe(`*Current device:* currentDevice
+*Available devices:*
+
+:one: device1
+:two: device2
+:three: device3
+
 React to select device`);
     });
 
@@ -66,8 +84,10 @@ React to select device`);
         const result = await selector.promptSelection();
 
         expect(result.success).toBe(true);
-        expect(result.message).toBe(`Available devices:
+        expect(result.message).toBe(`*Available devices:*
+
 :one: device1
+
 React to select device`);
     });
 
@@ -88,11 +108,11 @@ React to select device`);
 
         expect(actionResponse.success).toBe(true);
         expect(actionResponse.message.includes("creator")).toBe(true);
-        expect(mockedSpotify.prototype.setDeviceId).toHaveBeenCalledWith("id3");
+        expect(mockedSpotify.prototype.setDevice.mock.calls[0][0]).toEqual({ name: "device3", id: "id3" });
     });
 
     test("Should return a callback that fails if setting the device errors", async () => {
-        mockedSpotify.prototype.setDeviceId.mockRejectedValue(undefined);
+        mockedSpotify.prototype.setDevice.mockRejectedValue(undefined);
 
         const selector = makeSelector();
         const result = await selector.promptSelection();

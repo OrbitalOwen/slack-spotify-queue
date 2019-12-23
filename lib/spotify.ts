@@ -45,7 +45,7 @@ function getCurrentTime(): number {
 
 export class Spotify {
     public volume: number;
-    public deviceId: string;
+    public device: IDevice;
     private tokenExpirationEpoch: number;
     private webApi: SpotifyWebApi;
     private config: Config;
@@ -116,18 +116,24 @@ export class Spotify {
         });
     }
 
+    private getDeviceId(): string {
+        if (this.device) {
+            return this.device.id;
+        }
+    }
+
     public async play(uri: string, positionMs?: number): Promise<void> {
         winston.debug("Playing resource", { uri });
         await this.refreshTokenIfRequired();
         await this.webApi.setRepeat({
-            device_id: this.deviceId,
+            device_id: this.getDeviceId(),
             state: "off"
         });
         await this.webApi.setVolume(this.volume, {
-            device_id: this.deviceId
+            device_id: this.getDeviceId()
         });
         await this.webApi.play({
-            device_id: this.deviceId,
+            device_id: this.getDeviceId(),
             uris: [uri],
             position_ms: positionMs
         });
@@ -136,7 +142,7 @@ export class Spotify {
     public async pause(): Promise<void> {
         await this.refreshTokenIfRequired();
         await this.webApi.pause({
-            device_id: this.deviceId
+            device_id: this.getDeviceId()
         });
     }
 
@@ -144,7 +150,7 @@ export class Spotify {
         this.volume = volume;
         await this.refreshTokenIfRequired();
         await this.webApi.setVolume(volume, {
-            device_id: this.deviceId
+            device_id: this.getDeviceId()
         });
     }
 
@@ -159,22 +165,22 @@ export class Spotify {
         };
     }
 
-    public async setDeviceId(deviceId: string): Promise<void> {
+    public async setDevice(device: IDevice): Promise<void> {
         await this.refreshTokenIfRequired();
         const response = await this.webApi.getMyDevices();
         const devices = response.body.devices;
-        const deviceValid = devices.find(function(device: SpotifyApi.UserDevice) {
-            if (device.id === deviceId && !device.is_restricted) {
+        const deviceValid = devices.find(function(validDevice: SpotifyApi.UserDevice) {
+            if (validDevice.id === device.id && !validDevice.is_restricted) {
                 return true;
             }
         });
         if (!deviceValid) {
             throw new Error("Device is not valid");
         }
-        this.deviceId = deviceId;
-        winston.info("Set deviceId", { deviceId });
+        this.device = device;
+        winston.info("Set device", { device });
         await this.webApi.transferMyPlayback({
-            device_ids: [deviceId]
+            device_ids: [device.id]
         });
     }
 
@@ -271,5 +277,9 @@ export class Spotify {
             name,
             tracks
         };
+    }
+
+    public getCurrentDevice(): IDevice {
+        return this.device;
     }
 }
