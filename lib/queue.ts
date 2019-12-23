@@ -5,6 +5,7 @@ import { Spotify, ITrackEntry, IGroupEntry } from "./Spotify";
 import { Config } from "./Config";
 import { IResource } from "./identifySpotifyResource";
 import cloneDeep from "lodash.clonedeep";
+import { timingSafeEqual } from "crypto";
 
 export interface IQueueEntry extends ITrackEntry {
     creatorId: string;
@@ -75,12 +76,13 @@ export class Queue {
     public async add(resource: IResource, creatorId: string, trackLimit?: number): Promise<IAddResponse> {
         this.groupId += 1;
         const groupId = this.groupId;
+        let result: IAddResponse;
         if (resource.type === "track") {
             const trackEntry = await this.spotify.getTrack(resource.id);
             if (trackEntry.isPlayable) {
                 this.addTrackToQueue(trackEntry, creatorId, groupId);
             }
-            return {
+            result = {
                 name: trackEntry.name,
                 type: resource.type,
                 creatorId,
@@ -96,7 +98,7 @@ export class Queue {
             }
             if (groupEntry) {
                 const tracksAdded = this.addGroupToQueue(groupEntry, creatorId, groupId, trackLimit);
-                return {
+                result = {
                     name: groupEntry.name,
                     type: resource.type,
                     creatorId,
@@ -104,6 +106,12 @@ export class Queue {
                     tracks: tracksAdded
                 };
             }
+        }
+        if (result) {
+            if (!this.currentEntry && this.playing) {
+                await this.nextTrack();
+            }
+            return result;
         }
     }
 

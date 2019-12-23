@@ -44,18 +44,6 @@ export class Controller {
             } else {
                 message = `<@${creatorId}> added ${addResponse.tracks} tracks from ${addResponse.type} ${addResponse.name} to the queue`;
             }
-            const currentEntry = this.queue.getCurrentEntry();
-            const playing = this.queue.isPlaying();
-
-            if (playing && !currentEntry) {
-                const result = await this.play(creatorId);
-                if (!result.success) {
-                    return {
-                        success: false,
-                        message: "Resource queued successfully but failed to play"
-                    };
-                }
-            }
             return {
                 success: true,
                 message

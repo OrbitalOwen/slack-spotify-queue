@@ -131,24 +131,6 @@ describe("Controller.add()", () => {
         const result = await controller.add("creator_id", "resource");
         expect(result.success).toBe(false);
     });
-
-    test("If the queue is currently playing but with no track, should start the queue", async () => {
-        mockedQueue.prototype.isPlaying.mockReturnValue(true);
-        mockedQueue.prototype.getCurrentEntry.mockReturnValue(undefined);
-
-        const controller = makeController();
-        const playSpy = jest.spyOn(controller, "play");
-        playSpy.mockResolvedValue({ success: true });
-
-        let result = await controller.add("creator_id", "resource");
-        expect(playSpy).toHaveBeenCalledWith("creator_id");
-        expect(result.success).toBe(true);
-
-        playSpy.mockResolvedValue({ success: false });
-        result = await controller.add("creator_id", "resource");
-        expect(playSpy).toHaveBeenCalledWith("creator_id");
-        expect(result.success).toBe(false);
-    });
 });
 
 describe("Controller.play()", () => {

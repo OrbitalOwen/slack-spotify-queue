@@ -34,7 +34,9 @@ function mockConfig(config?: object) {
 function makeQueue() {
     const config = new Config();
     const spotify = new Spotify(config);
-    return new Queue(config, spotify);
+    const queue = new Queue(config, spotify);
+    (queue as any).playing = false;
+    return queue;
 }
 
 async function addTrack(queue: Queue, name: string, id: string, uri: string, creatorId: string, durationMs: number) {
@@ -408,6 +410,36 @@ describe("Queue.add()", () => {
             groupId: 1,
             tracks: 0
         });
+    });
+
+    test("Should play the track only if it is added to an empty queue whilst playing is true", async () => {
+        const queue = makeQueue();
+        (queue as any).playing = true;
+        const nextTrackSpy = jest.spyOn(queue, "nextTrack");
+        await addTrack(queue, "track_name", "track_id", "track_uri", "creator_id", 0);
+
+        expect(nextTrackSpy).toHaveBeenCalled();
+
+        (queue as any).playing = false;
+        nextTrackSpy.mockClear();
+        await addTrack(queue, "track_name", "track_id", "track_uri", "creator_id", 0);
+
+        expect(nextTrackSpy).not.toHaveBeenCalled();
+
+        (queue as any).playing = true;
+        (queue as any).currentEntry = {
+            name: "",
+            uri: "track_uri",
+            durationMs: 100,
+            creatorId: "",
+            queueId: 1,
+            groupId: 1,
+            pausedProgressMs: 50
+        };
+        nextTrackSpy.mockClear();
+        await addTrack(queue, "track_name", "track_id", "track_uri", "creator_id", 0);
+
+        expect(nextTrackSpy).not.toHaveBeenCalled();
     });
 });
 
