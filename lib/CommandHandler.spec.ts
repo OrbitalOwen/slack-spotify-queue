@@ -18,13 +18,16 @@ jest.mock("./Votes");
 jest.mock("./DeviceSelector");
 jest.mock("./NowPlaying");
 
+const mockedConfig = mocked(Config, true);
 const mockedController = mocked(Controller, true);
 const mockedSearchHandler = mocked(SearchHandler, true);
 const mockedVotes = mocked(Votes, true);
 const mockedDeviceSelector = mocked(DeviceSelector, true);
 const mockedNowPlaying = mocked(NowPlaying, true);
 
-beforeEach(() => {});
+beforeEach(() => {
+    mockedConfig.prototype.get.mockReturnValue(Object.assign({}, configTemplate));
+});
 
 afterEach(() => {
     jest.resetAllMocks();
@@ -39,7 +42,7 @@ function makeHandler() {
     const votes = new Votes(config, queue);
     const deviceSelector = new DeviceSelector(config, spotify);
     const nowPlaying = new NowPlaying(queue);
-    const commandHandler = new CommandHandler(controller, searchHandler, votes, deviceSelector, nowPlaying);
+    const commandHandler = new CommandHandler(config, controller, searchHandler, votes, deviceSelector, nowPlaying);
     return commandHandler;
 }
 
@@ -281,5 +284,16 @@ describe("search", () => {
         const result = await handler.processCommand("userId", "search song");
 
         expect(result.success).toBe(false);
+    });
+});
+
+describe("help", () => {
+    test("Should respond with a message", async () => {
+        const handler = makeHandler();
+        const result = await handler.processCommand("userId", "help");
+
+        expect(result.success).toBe(true);
+        expect(result.message).toBeTruthy();
+        expect(result.type).toBe("dm");
     });
 });

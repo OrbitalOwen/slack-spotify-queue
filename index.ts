@@ -20,7 +20,7 @@ const searchHandler = new SearchHandler(config, spotify, queue);
 const deviceSelector = new DeviceSelector(config, spotify);
 const votes = new Votes(config, queue);
 const nowPlaying = new NowPlaying(queue);
-const commandHandler = new CommandHandler(controller, searchHandler, votes, deviceSelector, nowPlaying);
+const commandHandler = new CommandHandler(config, controller, searchHandler, votes, deviceSelector, nowPlaying);
 const slack = new Slack(config);
 const bot = new Bot(config, slack, commandHandler);
 

@@ -6,6 +6,7 @@ import { Votes } from "./Votes";
 import { DeviceSelector } from "./DeviceSelector";
 import { NowPlaying } from "./NowPlaying";
 import { ICommandResponse } from "./CommandTypes";
+import { Config, IConfig } from "./Config";
 
 function splitRawCommand(rawString: string) {
     const components = rawString.split(" ");
@@ -17,7 +18,22 @@ function splitRawCommand(rawString: string) {
     };
 }
 
+function getDocsString(config: IConfig) {
+    return `*List of commands:*\n
+- \`search query\` - Search for the given track or album, which can then be added to the queue by reacting to the response.\n
+- \`add resource maxTracks\` - Adds the given \`resource\` to the queue, accepting a URL or URI. \`maxTracks\` limits the number of tracks to add from an album or playlist, defaulting to ${config.DEFAULT_TRACK_LIMIT}.\n
+- \`play force\` - Resumes the queue if it is paused. If \`force\` is present, will force the next track to play.\n
+- \`pause\` - Pauses the current track.\n
+- \`volume direction delta\` - Increases or decreases the volume. \`direction\` accepts 'up' and 'down' as values. \`delta\` defaults to ${config.DEFAULT_VOLUME_DELTA}%.\n
+- \`skip group\` - Votes to skip the current track. If \`group\` is 'album, 'playlist' or 'group'. Will vote to skip the current album / playlist. Skipping requires ${config.SKIP_THRESHOLD} votes, although a user can skip their own tracks without a vote.\n
+- \`status\` - Displays a 'now playing' string including the current track and an overview of the queue.\n
+- \`devices\` - Displays the current device, and provides a prompt to select a different one by reacting to the response.\n
+- \`help\` - Displays the list of commands you are looking at now.
+`;
+}
+
 export class CommandHandler {
+    private config: Config;
     private controller: Controller;
     private searchHandler: SearchHandler;
     private votes: Votes;
@@ -25,12 +41,14 @@ export class CommandHandler {
     private nowPlaying: NowPlaying;
 
     constructor(
+        config: Config,
         controller: Controller,
         searchHandler: SearchHandler,
         votes: Votes,
         deviceSelector: DeviceSelector,
         nowPlaying: NowPlaying
     ) {
+        this.config = config;
         this.controller = controller;
         this.searchHandler = searchHandler;
         this.votes = votes;
@@ -156,6 +174,15 @@ export class CommandHandler {
         };
     }
 
+    private async help(): Promise<ICommandResponse> {
+        const message = getDocsString(this.config.get());
+        return {
+            success: true,
+            message,
+            type: "dm"
+        };
+    }
+
     public async processCommand(userId: string, rawString: string): Promise<ICommandResponse> {
         const { command, params } = splitRawCommand(rawString);
 
@@ -176,6 +203,8 @@ export class CommandHandler {
                 return await this.devices(userId);
             case "search":
                 return await this.search(userId, params);
+            case "help":
+                return await this.help();
             default:
                 return {
                     success: false,
