@@ -1,5 +1,5 @@
 // Stores config data
-
+import winston from "winston";
 import fs from "fs";
 import path from "path";
 
@@ -15,7 +15,6 @@ export interface IConfig {
     BROADCAST_CHANNEL: string | null;
     DEFAULT_VOLUME_DELTA: number;
     MAX_VOLUME_DELTA: number;
-    SEARCH_RESULTS_LIFETIME: number;
     OPTION_EMOJIS: string[];
     SPOTIFY_ACCESS_TOKEN: string | null;
     SPOTIFY_REFRESH_TOKEN: string | null;
@@ -33,7 +32,6 @@ export const configTemplate: IConfig = {
     BROADCAST_CHANNEL: "",
     DEFAULT_VOLUME_DELTA: 10,
     MAX_VOLUME_DELTA: 20,
-    SEARCH_RESULTS_LIFETIME: 43200000,
     OPTION_EMOJIS: ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "zero"],
     SPOTIFY_ACCESS_TOKEN: null,
     SPOTIFY_REFRESH_TOKEN: null,
@@ -48,6 +46,7 @@ export class Config {
         if (fs.existsSync(configDirectory)) {
             this.data = JSON.parse(fs.readFileSync(configDirectory).toString());
         } else {
+            winston.info("No config file exists, creating a template config.json file");
             this.data = configTemplate;
             fs.writeFileSync(configDirectory, JSON.stringify(configTemplate, null, 4));
         }
