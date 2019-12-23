@@ -12,6 +12,8 @@ import { SearchHandler } from "./lib/SearchHandler";
 import { Slack } from "./lib/Slack";
 import { Bot } from "./lib/Bot";
 
+require("./lib/configureLogger");
+
 const config = new Config();
 const spotify = new Spotify(config);
 const queue = new Queue(config, spotify);
@@ -31,8 +33,6 @@ async function start() {
         await deviceSelector.autoSelectDevice();
     }
 }
-
-require("./lib/configureLogger");
 
 winston.info("Starting app");
 winston.info("Authenticating slack and spotify");
