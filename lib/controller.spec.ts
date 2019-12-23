@@ -138,7 +138,7 @@ describe("Controller.play()", () => {
         const controller = makeController();
         mockedQueue.prototype.isPlaying.mockReturnValue(false);
         mockedQueue.prototype.getQueue.mockReturnValue([]);
-        const result = await controller.play("");
+        const result = await controller.play("", false);
         expect(result.success).toBe(false);
     });
 
@@ -156,7 +156,7 @@ describe("Controller.play()", () => {
                 isPlayable: true
             }
         ]);
-        const result = await controller.play("John Doe");
+        const result = await controller.play("John Doe", false);
         expect(mockedQueue.prototype.nextTrack).toBeCalled();
         expect(result.success).toBe(true);
         expect(result.message.includes("John Doe"));
@@ -175,7 +175,7 @@ describe("Controller.play()", () => {
             durationMs: 100,
             isPlayable: true
         });
-        const result = await controller.play("");
+        const result = await controller.play("", false);
         expect(mockedQueue.prototype.resume).toBeCalled();
         expect(result.success).toBe(true);
         expect(result.message.includes("track_name"));
@@ -194,8 +194,18 @@ describe("Controller.play()", () => {
             isPlayable: true
         });
         mockedQueue.prototype.resume.mockRejectedValue(undefined);
-        const result = await controller.play("");
+        const result = await controller.play("", false);
         expect(result.success).toBe(false);
+    });
+
+    test("Should call nextTrack if playing is true and the force parameter is present", async () => {
+        const controller = makeController();
+        mockedQueue.prototype.isPlaying.mockReturnValue(true);
+        const result = await controller.play("John Doe", true);
+        expect(mockedQueue.prototype.nextTrack).toBeCalled();
+        expect(result.success).toBe(true);
+        expect(result.message.includes("John Doe"));
+        expect(result.message.includes("track_name"));
     });
 });
 

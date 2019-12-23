@@ -57,19 +57,23 @@ export class Controller {
         }
     }
 
-    public async play(userId: string): Promise<IActionResult> {
+    public async play(userId: string, force: boolean): Promise<IActionResult> {
         try {
             let queueEntry: IQueueEntry;
-            if (!this.queue.getCurrentEntry()) {
-                if (this.queue.getQueue().length === 0) {
-                    return {
-                        success: false,
-                        message: "Queue empty"
-                    };
+            if (!this.queue.isPlaying()) {
+                if (!this.queue.getCurrentEntry()) {
+                    if (this.queue.getQueue().length === 0) {
+                        return {
+                            success: false,
+                            message: "Queue empty"
+                        };
+                    }
+                    queueEntry = await this.queue.nextTrack();
+                } else {
+                    queueEntry = await this.queue.resume();
                 }
+            } else if (force) {
                 queueEntry = await this.queue.nextTrack();
-            } else {
-                queueEntry = await this.queue.resume();
             }
             return {
                 success: true,

@@ -59,8 +59,9 @@ export class CommandHandler {
         };
     }
 
-    private async play(userId: string): Promise<ICommandResponse> {
-        const result = await this.controller.play(userId);
+    private async play(userId: string, params: string[]): Promise<ICommandResponse> {
+        const force = params[0] === "force" ? true : false;
+        const result = await this.controller.play(userId, force);
         return {
             success: result.success,
             message: result.message,
@@ -162,7 +163,7 @@ export class CommandHandler {
             case "add":
                 return await this.add(userId, params);
             case "play":
-                return await this.play(userId);
+                return await this.play(userId, params);
             case "pause":
                 return await this.pause(userId);
             case "volume":

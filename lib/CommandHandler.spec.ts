@@ -94,7 +94,17 @@ describe("play", () => {
         const handler = makeHandler();
         const result = await handler.processCommand("userId", "play");
 
-        expect(mockedController.prototype.play).toHaveBeenCalledWith("userId");
+        expect(mockedController.prototype.play).toHaveBeenCalledWith("userId", false);
+        expect(result.success).toBe(true);
+    });
+
+    test("Should pass through the force parameter", async () => {
+        mockedController.prototype.play.mockResolvedValue({ success: true });
+
+        const handler = makeHandler();
+        const result = await handler.processCommand("userId", "play force");
+
+        expect(mockedController.prototype.play).toHaveBeenCalledWith("userId", true);
         expect(result.success).toBe(true);
     });
 
