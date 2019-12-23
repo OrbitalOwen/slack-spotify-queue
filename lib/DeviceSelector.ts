@@ -62,4 +62,17 @@ export class DeviceSelector {
             callback
         };
     }
+
+    public async autoSelectDevice() {
+        try {
+            const devices = await this.spotify.getAvailableDevices();
+            const device = devices[0];
+            if (!device) {
+                throw new Error("No device available");
+            }
+            await this.spotify.setDevice(device);
+        } catch (error) {
+            winston.error("Error auto-selecting device", { error });
+        }
+    }
 }

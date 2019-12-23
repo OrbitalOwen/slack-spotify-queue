@@ -27,6 +27,9 @@ const bot = new Bot(config, slack, commandHandler);
 async function start() {
     await spotify.authorize();
     await bot.listen();
+    if (config.get().AUTO_SELECT_DEVICE) {
+        await deviceSelector.autoSelectDevice();
+    }
 }
 
 require("./lib/configureLogger");

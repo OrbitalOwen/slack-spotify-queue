@@ -20,6 +20,7 @@ export interface IConfig {
     SPOTIFY_ACCESS_TOKEN: string | null;
     SPOTIFY_REFRESH_TOKEN: string | null;
     SEARCH_LIMIT: number;
+    AUTO_SELECT_DEVICE: boolean;
 }
 
 export const configTemplate: IConfig = {
@@ -36,7 +37,8 @@ export const configTemplate: IConfig = {
     OPTION_EMOJIS: ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "zero"],
     SPOTIFY_ACCESS_TOKEN: null,
     SPOTIFY_REFRESH_TOKEN: null,
-    SEARCH_LIMIT: 3
+    SEARCH_LIMIT: 3,
+    AUTO_SELECT_DEVICE: true
 };
 
 export class Config {
