@@ -4,10 +4,9 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "tsc && node index.js",
         "postinstall": "patch-package",
-        "test": "jest",
-        "watch": "tsc --watch"
+        "start": "tsc && node index.js",
+        "test": "tsc && jest"
     },
     "author": "OrbitalOwen",
     "license": "MIT",
