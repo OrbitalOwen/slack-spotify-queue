@@ -5,8 +5,9 @@
     "main": "index.js",
     "scripts": {
         "postinstall": "patch-package",
-        "start": "tsc && node index.js",
-        "test": "tsc && jest"
+        "build": "tsc",
+        "start": "node index.js",
+        "test": "jest"
     },
     "author": "OrbitalOwen",
     "license": "MIT",
@@ -27,7 +28,7 @@
         "winston": "^3.2.1"
     },
     "devDependencies": {
-        "@types/jest": "^24.0.23",
+        "@types/jest": "^24.0.24",
         "@types/node": "^12.12.8",
         "decache": "^4.5.1",
         "jest": "^24.9.0",
