@@ -10,6 +10,7 @@ This app can be ran on a computer or deployed to a server. Any spotify player ca
 
 -   Install [nodejs](https://nodejs.org/en/download/)
 -   Install dependencies using `npm install`
+-   Build project using `npm run build`
 -   Create a `config.json` file in this project's directory in the following format:
 
 ## Config File
