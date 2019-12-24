@@ -1,4 +1,5 @@
-const URL_START = "https://open.spotify.com/";
+const URL_PREFIXES = ["http://", "https://"];
+const URL_START = "open.spotify.com/";
 const URI_START = "spotify:";
 
 export interface IResource {
@@ -6,12 +7,25 @@ export interface IResource {
     id: string;
 }
 
-function identifySpotifyResource(rawInputString: string): IResource | null {
+function removeUrlPrefix(input: string): string {
+    for (const prefix of URL_PREFIXES) {
+        input = input.replace(prefix, "");
+    }
+    return input;
+}
+
+function removeSlackTags(input: string): string {
+    input = input.replace("<", "");
+    input = input.replace(">", "");
+    return input;
+}
+
+export function identifySpotifyResource(rawInputString: string): IResource | undefined {
     let inputString = rawInputString.trim();
 
-    if (inputString.startsWith("<") && inputString.endsWith(">")) {
-        inputString = inputString.substring(1, inputString.length - 1);
-    }
+    inputString = removeSlackTags(inputString);
+    inputString = removeUrlPrefix(inputString);
+
     const isUrl = inputString.startsWith(URL_START);
     const isUri = inputString.startsWith(URI_START);
 
@@ -33,5 +47,3 @@ function identifySpotifyResource(rawInputString: string): IResource | null {
         }
     }
 }
-
-export default identifySpotifyResource;

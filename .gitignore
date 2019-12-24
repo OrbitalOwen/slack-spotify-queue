@@ -1,5 +1,9 @@
 node_modules/
-**.js
+/lib/**.js
+__mocks__/**.js
+/index.js
 **.js.map
 .env
-config.json
+/config.json
+coverage/
+logs/

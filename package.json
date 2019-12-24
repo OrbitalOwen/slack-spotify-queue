@@ -4,25 +4,36 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "tsc && node index.js",
-        "postinstall": "patch-package"
+        "postinstall": "patch-package",
+        "build": "tsc",
+        "start": "node index.js",
+        "test": "jest"
     },
     "author": "OrbitalOwen",
     "license": "MIT",
     "dependencies": {
         "@slack/rtm-api": "^5.0.2",
         "@slack/web-api": "^5.2.1",
-        "@types/node": "^12.7.5",
+        "@types/lodash.clonedeep": "^4.5.6",
+        "@types/pretty-ms": "^5.0.1",
         "@types/spotify-web-api-node": "^4.0.1",
         "express": "^4.17.1",
+        "lodash.clonedeep": "^4.5.0",
         "open": "^6.4.0",
         "patch-package": "^6.2.0",
+        "pretty-ms": "^5.1.0",
         "request": "^2.88.0",
         "seratch-slack-types": "^0.3.6",
         "spotify-web-api-node": "^4.0.0",
-        "typescript": "^3.6.3"
+        "winston": "^3.2.1"
     },
     "devDependencies": {
-        "tslint": "^5.20.0"
+        "@types/jest": "^24.0.24",
+        "@types/node": "^12.12.8",
+        "decache": "^4.5.1",
+        "jest": "^24.9.0",
+        "ts-jest": "^24.1.0",
+        "tslint": "^5.20.0",
+        "typescript": "^3.7.2"
     }
 }
