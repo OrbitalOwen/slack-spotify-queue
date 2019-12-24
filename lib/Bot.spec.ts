@@ -16,6 +16,8 @@ const mockedCommandHandler = mocked(CommandHandler, true);
 const mockedConfig = mocked(Config, true);
 
 beforeEach(() => {
+    jest.clearAllTimers();
+    jest.useFakeTimers();
     mockedConfig.prototype.get.mockReturnValue(
         Object.assign({}, configTemplate, {
             BROADCAST_CHANNEL: "broadcast_channel",
@@ -160,7 +162,7 @@ describe("listen()", () => {
         expect(mockedSlack.prototype.sendMessage).not.toHaveBeenCalled();
     });
 
-    test("Should listen to reactions if a callback is given", async () => {
+    test.only("Should listen to reactions if a callback is given", async () => {
         mockedCommandHandler.prototype.processCommand.mockResolvedValue({
             success: true,
             message: "These are your options",
@@ -169,6 +171,7 @@ describe("listen()", () => {
         });
 
         const messageSignal = getMessageSignal();
+        getReactionSignal();
 
         await makeBotAndListen();
 
@@ -337,8 +340,6 @@ describe("listen()", () => {
     });
 
     test("Should stop listening for option responses after a while", async () => {
-        jest.useFakeTimers();
-
         const callback = jest.fn().mockResolvedValue({
             success: true,
             message: "This is my response",
@@ -364,7 +365,7 @@ describe("listen()", () => {
             ts: "0"
         });
 
-        jest.advanceTimersByTime(600001);
+        jest.runAllTimers();
 
         await reactionSignal.fire({
             user: "user_id",

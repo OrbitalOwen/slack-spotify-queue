@@ -10,8 +10,6 @@ jest.mock("./getSpotifyObjectName");
 jest.mock("spotify-web-api-node");
 jest.mock("open");
 
-jest.useFakeTimers();
-
 const mockedSpotifyWebApi = mocked(SpotifyWebApi, true);
 const mockedConfig = mocked(Config, true);
 const mockedOpenUrl = mocked(openUrl, true);
@@ -197,6 +195,8 @@ function validateAuthenticatesWhen(func: (spotify: Spotify) => void) {
 }
 
 beforeEach(() => {
+    jest.clearAllTimers();
+    jest.useFakeTimers();
     mockedGetObjectName.mockReturnValue("RETURNED_NAME");
     mockedOpenUrl.mockResolvedValue(null);
     setupSpotifyApiMock();

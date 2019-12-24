@@ -54,6 +54,7 @@ async function addTrack(queue: Queue, name: string, id: string, uri: string, cre
 }
 
 beforeEach(() => {
+    jest.clearAllTimers();
     jest.useFakeTimers();
     mockSpotify();
     mockConfig();
