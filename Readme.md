@@ -61,6 +61,10 @@ This app can be ran on a computer or deployed to a server. Any spotify player ca
 -   Unless, `SPOTIFY_ACCESS_TOKEN` and `SPOTIFY_REFRESH_TOKEN` are manually set in `config.json`, a web browser window will open asking you to authenticate with Spotify. Once authenticated these values will be automatically written to `config.json`.
 -   Invite the bot to the channel they will broadcast from (if applicable) and DM commands to the bot (use `help` for more info)
 
+## Running as a background process
+
+You may wish to run this app as a daemon process. The easiest way to do this is using `pm2` and running `pm2 start node -- index.js`.
+
 ## Caveats
 
 -   This was developed for internal use. It is still in development and not stable. Whilst this is the case, it's not suitable for use.
