@@ -150,6 +150,7 @@ export class Queue {
     public async nextTrack(): Promise<IQueueEntry | undefined> {
         const queueEntry = this.queue[0];
         if (!queueEntry) {
+            await this.stop();
             this.currentEntry = null;
             return;
         }
