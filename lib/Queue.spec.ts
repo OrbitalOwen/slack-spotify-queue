@@ -467,6 +467,14 @@ describe("Queue.nextTrack()", () => {
         expect(currentEntry).toBe(undefined);
     });
 
+    test("If the queue is empty, should stop Spotify", async () => {
+        const queue = makeQueue();
+
+        await queue.nextTrack();
+
+        expect(mockedSpotify.prototype.pause).toHaveBeenCalled();
+    });
+
     test("If playback is successful, should advance the queue", async () => {
         const queue = makeQueue();
         await addTrack(queue, "track_name", "track_id", "track_uri", "creator_id", 0);
