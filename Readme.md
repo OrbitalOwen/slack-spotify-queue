@@ -2,9 +2,11 @@
 
 **WARNING: This project is still in production and is not stable yet.**
 
-An app that allows a spotify queue to be played and manipulated from slack. Allows coworkers to collaboratively control the music. Includes a queueing functionality, along with skip votes.
+An app that allows a Spotify queue to be played and manipulated from slack. Allows coworkers to collaboratively control the music. Includes a queueing functionality, along with skip votes.
 
-This app can be ran on a computer or deployed to a server. Any spotify player can be used to output the music, provided it can be manipulated via web commands. There is no requirement that the spotify app is running on the same machine as this app.
+This app can be ran on a computer or deployed to a server. Any Spotify player can be used to output the music, provided it can be manipulated via web commands. There is no requirement that the spotify app is running on the same machine as this app.
+
+For a quick setup in an office, use a spare laptop plugged into your office's speakers. Download and log into Spotify, then open the Spotify app. Next, download this project, [set it up](setup), create the [config file](#config-file) and [run the app](#running).
 
 ## Setup
 
@@ -25,7 +27,7 @@ This app can be ran on a computer or deployed to a server. Any spotify player ca
     "SPOTIFY_ACCESS_TOKEN": null,
     "SPOTIFY_REFRESH_TOKEN": null,
 
-    // Create an app on `https://api.slack.com/apps/`, include a bot user, add to your workplace and retrieve the `Bot User OAuth Access Token` under `OAuth & Permissions`
+    // Create an app on `https://api.slack.com/apps`, include a bot user, add to your workplace and retrieve the `Bot User OAuth Access Token` under `OAuth & Permissions`
     "SLACK_BOT_TOKEN": "",
 
     // The number of skip votes required to skip a vote
